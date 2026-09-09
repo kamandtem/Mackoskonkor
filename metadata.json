@@ -1,0 +1,6 @@
+{
+  "name": "کنکور من",
+  "description": "اپلیکیشن جامع شمارش معکوس، برنامه‌ریزی درسی و ثبت تمرکز داوطلبان کنکور سراسری با رابط کاربری Soft UI مدرن و عملکرد کاملاً آفلاین",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

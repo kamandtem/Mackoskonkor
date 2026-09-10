@@ -59,7 +59,7 @@ export interface StudySession {
   /** تاریخ محلی به شکل YYYY-MM-DD */
   isoDate: string;
   timestamp: number;
-  type: 'pomodoro' | 'timer' | 'manual' | 'drill';
+  type: 'pomodoro' | 'timer' | 'manual' | 'drill' | 'virtual' | 'physical';
 }
 
 export interface MockExam {
@@ -89,7 +89,7 @@ export interface TestDrill {
   timestamp: number;
 }
 
-export type NavTab = 'home' | 'planner' | 'focus' | 'progress' | 'report' | 'exams' | 'drill';
+export type NavTab = 'home' | 'planner' | 'focus' | 'studyHall' | 'progress' | 'report' | 'exams' | 'drill';
 
 export type AmbientSoundId =
   | 'none'

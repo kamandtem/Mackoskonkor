@@ -230,7 +230,7 @@ function sanitizeTasks(raw: unknown): TaskItem[] {
 
 function sanitizeSessions(raw: unknown): StudySession[] {
   if (!Array.isArray(raw)) return [];
-  const allowed = ['pomodoro', 'timer', 'manual', 'drill'];
+  const allowed = ['pomodoro', 'timer', 'manual', 'drill', 'virtual', 'physical'];
   return raw.filter(isObj).map((s, i) => {
     const iso = sanitizeIso(s.isoDate) || toLocalIso();
     return {

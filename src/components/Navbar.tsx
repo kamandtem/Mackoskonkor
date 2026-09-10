@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart2, Calendar, Clock, Home, Plus } from 'lucide-react';
+import { BarChart2, Building2, Calendar, Clock, Home, Plus } from 'lucide-react';
 import { NavTab } from '../types/konkur';
 
 interface NavbarProps {
@@ -26,6 +26,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'home', label: 'خانه', icon: Home },
     { id: 'planner', label: 'تقویم', icon: Calendar },
     { id: 'focus', label: 'تمرکز', icon: Clock },
+    { id: 'studyHall', label: 'سالن', icon: Building2 },
     { id: 'progress', label: 'پیشرفت', icon: BarChart2 },
   ];
 
@@ -59,7 +60,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => onSelectTab(item.id)}
                 title={item.label}
                 aria-label={item.label}
-                className="w-11 h-11 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 active:scale-90 transition-all"
+                className="w-9 h-11 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 active:scale-90 transition-all"
               >
                 <Icon className="w-[21px] h-[21px]" />
               </button>

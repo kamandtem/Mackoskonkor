@@ -68,6 +68,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { SpeedDrillView } from './components/SpeedDrillView';
 import { StatCards } from './components/StatCards';
 import { UpcomingExamCard } from './components/UpcomingExamCard';
+import { StudyHallView } from './features/studyHall/StudyHallView';
 
 const uid = (prefix: string) =>
   `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
@@ -528,6 +529,20 @@ export default function App() {
               }
               onOpenSounds={() => setIsSoundsOpen(true)}
               currentSound={currentSound}
+            />
+          </div>
+        )}
+
+        {currentTab === 'studyHall' && (
+          <div className="animate-in fade-in duration-200">
+            <StudyHallView
+              subjects={subjects}
+              dailyGoalMinutes={profile.dailyGoalMinutes}
+              todayMinutes={stats.todayMinutes}
+              streak={stats.streak}
+              onRecordStudy={(id, name, minutes, mode) =>
+                recordSession(id, name, minutes, mode)
+              }
             />
           </div>
         )}

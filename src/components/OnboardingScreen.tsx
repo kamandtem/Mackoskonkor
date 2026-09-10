@@ -13,6 +13,7 @@ import {
   User,
 } from 'lucide-react';
 import { MajorType, UserProfile } from '../types/konkur';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ALL_MAJORS, ParsedBackup, parseBackup } from '../utils/storage';
 import {
   addDays,
@@ -41,6 +42,8 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   onComplete,
   onRestoreBackup,
 }) => {
+  const [introStep, setIntroStep] = useState(0);
+  const [showIntro, setShowIntro] = useState(true);
   const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,6 +58,56 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const daysRemaining = daysUntilJalaliKey(examDateKey) ?? 0;
+
+  const introSlides = [
+    {
+      image: '/onboarding/Learning-rafiki.svg',
+      eyebrow: 'شروع هوشمند',
+      title: <>برنامه‌ات را<br />با خیال راحت بچین</>,
+      description: 'درس، فصل و زمان مطالعه را مشخص کن و مسیرت را منظم جلو ببر.',
+    },
+    {
+      image: '/onboarding/Online-test-pana.svg',
+      eyebrow: 'آزمون و تحلیل',
+      title: <>درصدت را<br />دقیق‌تر بشناس</>,
+      description: 'نتیجه تست‌ها را ثبت کن، درصد را ببین و پیشرفتت را مقایسه کن.',
+    },
+    {
+      image: '/onboarding/Cohort-analysis-cuate.svg',
+      eyebrow: 'تمرکز روی رشد',
+      title: <>پیشرفتت را<br />واضح ببین</>,
+      description: 'مطالعه‌ها، آزمون‌ها و کارنامه‌ات را یک‌جا دنبال کن.',
+    },
+  ];
+
+  if (showIntro) {
+    const slide = introSlides[introStep];
+    const isLast = introStep === introSlides.length - 1;
+    return (
+      <div className="onboarding-intro-shell" dir="rtl">
+        <div className="onboarding-intro">
+          <div className="intro-brand">
+            <img src="/icon.svg" alt="" />
+            <span>شمارش معکوس کنکور</span>
+            <button type="button" onClick={() => { setShowIntro(false); setIntroStep(0); }}>رد کردن</button>
+          </div>
+          <div className="intro-art"><div className="intro-art-blob" /><img src={slide.image} alt="" /></div>
+          <div className="intro-copy">
+            <span>{slide.eyebrow}</span>
+            <h1>{slide.title}</h1>
+            <p>{slide.description}</p>
+          </div>
+          <div className="intro-bottom">
+            <div className="intro-dots">{introSlides.map((_, index) => <i key={index} className={index === introStep ? 'active' : ''} />)}</div>
+            <button type="button" className="intro-next" onClick={() => isLast ? setShowIntro(false) : setIntroStep((value) => value + 1)}>
+              {isLast ? 'بزن بریم' : 'بعدی'} {isLast ? <Check /> : <ChevronLeft />}
+            </button>
+            {introStep > 0 && <button type="button" className="intro-back" onClick={() => setIntroStep((value) => value - 1)}><ChevronRight /> قبلی</button>}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const validateStep = (): string | null => {
     if (step === 1) {

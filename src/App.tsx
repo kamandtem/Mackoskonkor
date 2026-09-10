@@ -59,6 +59,7 @@ import { Header, HeaderNotification } from './components/Header';
 import { HomeTimeline } from './components/HomeTimeline';
 import { ManualLogModal } from './components/ManualLogModal';
 import { Navbar } from './components/Navbar';
+import { QuickActionMenu } from './components/QuickActionMenu';
 import { OnboardingScreen } from './components/OnboardingScreen';
 import { PlannerView } from './components/PlannerView';
 import { ProfileModal } from './components/ProfileModal';
@@ -93,6 +94,8 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSoundsOpen, setIsSoundsOpen] = useState(false);
+  const [isQuickActionOpen, setIsQuickActionOpen] = useState(false);
+  const [isManualLogOpen, setIsManualLogOpen] = useState(false);
   const [isManualLogOpen, setIsManualLogOpen] = useState(false);
   const [isBackupOpen, setIsBackupOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
@@ -475,8 +478,17 @@ export default function App() {
       <Navbar
         currentTab={currentTab}
         onSelectTab={goToTab}
-        profile={profile}
-        onOpenProfile={() => setIsProfileOpen(true)}
+        onOpenQuickAction={() => setIsQuickActionOpen(true)}
+      />
+
+      {/* منوی سریع - عملیات سریع */}
+      <QuickActionMenu
+        isOpen={isQuickActionOpen}
+        onClose={() => setIsQuickActionOpen(false)}
+        onStartFocus={() => goToTab('focus')}
+        onStartDrill={() => goToTab('drill')}
+        onAddTask={() => goToTab('planner')}
+        onManualLog={() => setIsManualLogOpen(true)}
       />
 
       {/* تنها منوی برنامه — با آیکن منو در هدر باز می‌شود */}

@@ -10,6 +10,7 @@ import {
   toPersianDigits,
 } from '../utils/jalali';
 import { JalaliDateField } from './JalaliDateField';
+import { COUNTDOWN_STYLES, COUNTDOWN_LABELS, CountdownStyle } from '../types/countdown';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -252,7 +253,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
-          <label className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100 cursor-pointer">
+          {/* نوع عداد شمارش معکوس */}
+          <div className="mb-4">
+            <label className="text-[11px] font-black text-slate-500 mb-2 block">نوع عداد</label>
+            <div className="grid grid-cols-3 gap-2">
+              {COUNTDOWN_STYLES.map((style) => (
+                <button
+                  key={style}
+                  type="button"
+                  onClick={() => setCountdownStyle(style)}
+                  className={`px-2 py-1.5 rounded-lg text-[10px] font-black transition-all text-center ${
+                    countdownStyle === style
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'bg-slate-50 text-slate-600 border border-slate-100'
+                  }`}
+                >
+                  {COUNTDOWN_LABELS[style]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100 cursor-pointer">          <label className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100 cursor-pointer">
             <span className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-indigo-500" />
               <span className="text-xs font-bold text-slate-700">

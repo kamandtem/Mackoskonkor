@@ -44,24 +44,26 @@ import {
 } from './utils/stats';
 import { soundEngine } from './utils/soundEngine';
 
+import { applyTheme, loadTheme, saveTheme, ThemeMode } from './utils/theme';
+
 import { AboutModal } from './components/AboutModal';
 import { AmbientSoundModal } from './components/AmbientSoundModal';
 import { ArcWheelMenu } from './components/ArcWheelMenu';
 import { BackupModal } from './components/BackupModal';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { CountdownDial } from './components/CountdownDial';
+import { CountdownRenderer } from './components/CountdownStyles';
 import { ExamsView } from './components/ExamsView';
 import { FocusTimer } from './components/FocusTimer';
-import { Header } from './components/Header';
+import { Header, HeaderNotification } from './components/Header';
 import { HomeTimeline } from './components/HomeTimeline';
 import { ManualLogModal } from './components/ManualLogModal';
 import { Navbar } from './components/Navbar';
 import { OnboardingScreen } from './components/OnboardingScreen';
 import { PlannerView } from './components/PlannerView';
+import { ProfileModal } from './components/ProfileModal';
 import { ProgressView } from './components/ProgressView';
-import { QuickActionModal } from './components/QuickActionModal';
 import { SettingsModal } from './components/SettingsModal';
-import { SideMenu } from './components/SideMenu';
 import { SpeedDrillView } from './components/SpeedDrillView';
 import { StatCards } from './components/StatCards';
 import { UpcomingExamCard } from './components/UpcomingExamCard';
@@ -87,17 +89,32 @@ export default function App() {
   const [currentTab, setCurrentTab] = useState<NavTab>('home');
   const [preselectedFocusSubject, setPreselectedFocusSubject] = useState<string | undefined>();
 
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isArcMenuOpen, setIsArcMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSoundsOpen, setIsSoundsOpen] = useState(false);
-  const [isQuickActionOpen, setIsQuickActionOpen] = useState(false);
   const [isManualLogOpen, setIsManualLogOpen] = useState(false);
   const [isBackupOpen, setIsBackupOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
   const [currentSound, setCurrentSound] = useState<AmbientSoundId>('none');
+  const [theme, setTheme] = useState<ThemeMode>('light');
+
+  useEffect(() => {
+    const storedTheme = loadTheme();
+    setTheme(storedTheme);
+    applyTheme(storedTheme);
+  }, []);
+
+  const handleToggleTheme = useCallback(() => {
+    setTheme((prev) => {
+      const next: ThemeMode = prev === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      saveTheme(next);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     const storedProfile = loadProfile();
@@ -158,6 +175,40 @@ export default function App() {
   const drillStats = useMemo(() => computeDrillStats(drills), [drills]);
   const todayTasks = useMemo(() => tasksForDay(tasks, todayJalaliKey()), [tasks]);
   const upcomingExam = useMemo(() => nextExam(exams), [exams]);
+
+  const notifications = useMemo<HeaderNotification[]>(() => {
+    const items: HeaderNotification[] = [];
+
+    const pending = todayTasks.filter((t) => !t.isCompleted);
+    if (pending.length > 0) {
+      items.push({
+        id: 'today-tasks',
+        title: `${pending.length} کار امروز باقی مانده`,
+        description: pending
+          .slice(0, 3)
+          .map((t) => `${t.startTime} · ${t.subjectName}`)
+          .join(' — '),
+      });
+    }
+
+    if (upcomingExam) {
+      items.push({
+        id: `exam-${upcomingExam.id}`,
+        title: `آزمون نزدیک: ${upcomingExam.title}`,
+        description: `تاریخ ${upcomingExam.dateJalali}`,
+      });
+    }
+
+    if (stats.todayMinutes < profile.dailyGoalMinutes) {
+      items.push({
+        id: 'daily-goal',
+        title: 'هدف امروز کامل نشده',
+        description: `${Math.max(0, profile.dailyGoalMinutes - stats.todayMinutes)} دقیقه تا هدف روزانه`,
+      });
+    }
+
+    return items;
+  }, [todayTasks, upcomingExam, stats.todayMinutes, profile.dailyGoalMinutes]);
 
   const hasExamDate = profile.examTargetDate !== '';
   const daysRemaining = hasExamDate ? calculateDaysRemaining(profile.examTargetDate) : null;
@@ -316,17 +367,13 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f2f5f9] text-slate-800 flex flex-col justify-between max-w-md mx-auto shadow-2xl relative overflow-x-hidden">
       <Header
-        profile={profile}
-        streak={stats.streak}
-        onOpenMenu={() => setIsMenuOpen(true)}
-        onOpenArcMenu={() => setIsArcMenuOpen(true)}
-        onOpenSounds={() => setIsSoundsOpen(true)}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-        activeSoundName={currentSound !== 'none' ? currentSound : undefined}
+        notifications={notifications}
+        onOpenMenu={() => setIsArcMenuOpen(true)}
+        onOpenHome={() => goToTab('home')}
       />
 
-      {/* هدر و نوار پایین شناورند؛ فاصله‌ی بالا و پایین برای محتوا لازم است */}
-      <main className="flex-1 pt-22 pb-28 overflow-y-auto no-scrollbar">
+      {/* هدر و نوار پایین شناورند؛ فاصله‌ی امن بالا و پایین برای محتوا لازم است */}
+      <main className="flex-1 safe-main overflow-y-auto no-scrollbar">
         {currentTab === 'home' && (
           <div className="flex flex-col animate-in fade-in duration-200">
             <CountdownDial
@@ -334,6 +381,7 @@ export default function App() {
               progressPercent={progressPercent}
               examName={profile.examName}
               dailyGoalMinutes={profile.dailyGoalMinutes}
+              countdownStyle={profile.countdownStyle}
               onStartFocus={() => goToTab('focus')}
               onOpenDatePicker={() => setIsSettingsOpen(true)}
             />
@@ -427,32 +475,28 @@ export default function App() {
       <Navbar
         currentTab={currentTab}
         onSelectTab={goToTab}
-        onOpenQuickAction={() => setIsQuickActionOpen(true)}
+        profile={profile}
+        onOpenProfile={() => setIsProfileOpen(true)}
       />
 
-      {/* منوی قوسی — با دکمه‌ی قطب‌نما در هدر باز می‌شود */}
+      {/* تنها منوی برنامه — با آیکن منو در هدر باز می‌شود */}
       <ArcWheelMenu
         isOpen={isArcMenuOpen}
         onClose={() => setIsArcMenuOpen(false)}
+        profile={profile}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
         onNavigateTab={goToTab}
         onStartFocusSubject={handleStartFocusSubject}
         onOpenSounds={() => setIsSoundsOpen(true)}
-      />
-
-      {/* منوی اصلی — با لمس عکس کاربر در هدر باز می‌شود */}
-      <SideMenu
-        isOpen={isMenuOpen}
-        onClose={() => setIsMenuOpen(false)}
-        profile={profile}
-        streak={stats.streak}
-        todayMinutes={stats.todayMinutes}
-        daysRemaining={daysRemaining}
-        onNavigate={goToTab}
         onOpenSettings={() => setIsSettingsOpen(true)}
-        onOpenSounds={() => setIsSoundsOpen(true)}
+        onOpenProfile={() => setIsProfileOpen(true)}
+        onOpenManualLog={() => setIsManualLogOpen(true)}
         onOpenBackup={() => setIsBackupOpen(true)}
         onOpenAbout={() => setIsAboutOpen(true)}
         onResetData={() => setIsResetConfirmOpen(true)}
+        telegramUrl="#"
+        instagramUrl="#"
       />
 
       <AmbientSoundModal
@@ -469,13 +513,11 @@ export default function App() {
         onSaveProfile={handleSaveProfile}
       />
 
-      <QuickActionModal
-        isOpen={isQuickActionOpen}
-        onClose={() => setIsQuickActionOpen(false)}
-        onOpenAddPlan={() => goToTab('planner')}
-        onOpenManualLog={() => setIsManualLogOpen(true)}
-        onStartFocus={() => goToTab('focus')}
-        onStartDrill={() => goToTab('drill')}
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        profile={profile}
+        onSaveProfile={handleSaveProfile}
       />
 
       <ManualLogModal

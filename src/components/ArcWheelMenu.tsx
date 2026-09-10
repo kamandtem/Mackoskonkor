@@ -1,30 +1,51 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Moon,
-  Coffee,
-  Zap,
-  CheckCircle2,
-  Clock,
-  Sparkles,
+  ArrowLeft,
   Award,
   BarChart2,
-  Headphones,
-  X,
-  ArrowLeft,
-  ChevronUp,
+  Calendar,
+  CheckCircle2,
   ChevronDown,
+  ChevronUp,
+  Clock,
+  Coffee,
+  DatabaseBackup,
+  Headphones,
+  Home,
+  Info,
+  Instagram,
+  Moon,
+  PenLine,
+  Send,
+  Settings,
+  Sun,
+  Trash2,
+  User,
+  X,
+  Zap,
 } from 'lucide-react';
-import { NavTab } from '../types/konkur';
+import { NavTab, UserProfile } from '../types/konkur';
+import { ThemeMode } from '../utils/theme';
+import { toPersianDigits } from '../utils/jalali';
+
+type ArcAction =
+  | 'tab'
+  | 'sound'
+  | 'focus_subject'
+  | 'break'
+  | 'profile'
+  | 'manual_log'
+  | 'backup'
+  | 'about'
+  | 'reset';
 
 export interface ArcMenuItem {
   id: string;
   labelFa: string;
-  labelEn: string;
-  desc: string;
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   color: string;
   bgLight: string;
-  actionType: 'tab' | 'sound' | 'focus_subject' | 'break';
+  actionType: ArcAction;
   targetTab?: NavTab;
   subjectName?: string;
 }
@@ -32,51 +53,57 @@ export interface ArcMenuItem {
 interface ArcWheelMenuProps {
   isOpen: boolean;
   onClose: () => void;
+  profile: UserProfile;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
   onNavigateTab: (tab: NavTab) => void;
-  onStartFocusSubject?: (subject: string) => void;
-  onOpenSounds?: () => void;
+  onStartFocusSubject: (subject: string) => void;
+  onOpenSounds: () => void;
+  onOpenSettings: () => void;
+  onOpenProfile: () => void;
+  onOpenManualLog: () => void;
+  onOpenBackup: () => void;
+  onOpenAbout: () => void;
+  onResetData: () => void;
+  /** بعداً به آدرس واقعی وصل می‌شود */
+  telegramUrl?: string;
+  instagramUrl?: string;
 }
 
+/** همه‌ی بخش‌های برنامه در یک منو — منوی کشویی قدیمی حذف شده است */
 export const ARC_MENU_ITEMS: ArcMenuItem[] = [
   {
-    id: 'sleep',
-    labelFa: 'خواب و ریکاوری',
-    labelEn: 'Sleep & Rest',
-    desc: 'تنظیم ساعت خواب و شارژ انرژی مغز برای یادگیری پایدار',
-    icon: Moon,
-    color: '#3b82f6', // آبی ملایم
-    bgLight: '#eff6ff',
+    id: 'home',
+    labelFa: 'خانه',
+    icon: Home,
+    color: '#0ea5e9',
+    bgLight: '#e0f2fe',
     actionType: 'tab',
     targetTab: 'home',
   },
   {
-    id: 'break',
-    labelFa: 'استراحت و تحرک',
-    labelEn: 'Break & Stretch',
-    desc: '۵ دقیقه کشش عضلانی، تنفس عمیق و بازیابی هشیاری بین پارت‌های مطالعه',
-    icon: Coffee,
-    color: '#f97316', // نارنجی
-    bgLight: '#fff7ed',
-    actionType: 'break',
+    id: 'planner',
+    labelFa: 'برنامه‌ریزی',
+    icon: Calendar,
+    color: '#10b981',
+    bgLight: '#ecfdf5',
+    actionType: 'tab',
+    targetTab: 'planner',
   },
   {
     id: 'power_study',
-    labelFa: 'مطالعه پرفشار و مفهومی',
-    labelEn: 'Power Study',
-    desc: 'یادگیری عمیق، حل تست‌های سخت و تحلیل موشکافانه درس‌ها',
+    labelFa: 'مطالعه پرفشار',
     icon: Zap,
-    color: '#f43f5e', // قرمز مرجانی
+    color: '#f43f5e',
     bgLight: '#fff1f2',
     actionType: 'focus_subject',
     subjectName: 'مطالعه مفهومی',
   },
   {
-    id: 'practice',
+    id: 'drill',
     labelFa: 'تست‌زنی سرعتی',
-    labelEn: 'Speed Practice',
-    desc: 'حل تست‌های زمان‌دار کنکور سراسری و افزایش سرعت پردازش ذهنی',
     icon: CheckCircle2,
-    color: '#ec4899', // صورتی درخشان (آیتم اصلی مثل تصویر)
+    color: '#ec4899',
     bgLight: '#fdf2f8',
     actionType: 'tab',
     targetTab: 'drill',
@@ -84,236 +111,407 @@ export const ARC_MENU_ITEMS: ArcMenuItem[] = [
   {
     id: 'focus',
     labelFa: 'تایمر پومودورو',
-    labelEn: 'Pomodoro Timer',
-    desc: 'غوطه‌وری در تمرکز عمیق بدون حواس‌پرتی در سیکل‌های ۲۵ دقیقه‌ای',
     icon: Clock,
-    color: '#06b6d4', // فیروزه‌ای
+    color: '#06b6d4',
     bgLight: '#ecfeff',
     actionType: 'tab',
     targetTab: 'focus',
   },
   {
-    id: 'review',
-    labelFa: 'مرور و فلش‌کارت',
-    labelEn: 'Flashcards & Review',
-    desc: 'مرور سریع فرمول‌ها، لغات و نکات کلیدی با جعبه لایتنر',
-    icon: Sparkles,
-    color: '#eab308', // زرد کهربایی
-    bgLight: '#fefce8',
-    actionType: 'tab',
-    targetTab: 'planner',
+    id: 'break',
+    labelFa: 'استراحت و تحرک',
+    icon: Coffee,
+    color: '#f97316',
+    bgLight: '#fff7ed',
+    actionType: 'break',
   },
   {
-    id: 'mock_exam',
+    id: 'manual_log',
+    labelFa: 'ثبت مطالعه',
+    icon: PenLine,
+    color: '#8b5cf6',
+    bgLight: '#f5f3ff',
+    actionType: 'manual_log',
+  },
+  {
+    id: 'exams',
     labelFa: 'آزمون آزمایشی',
-    labelEn: 'Mock Exam',
-    desc: 'شبیه‌سازی شرایط واقعی جلسه کنکور و مدیریت زمان و استرس',
     icon: Award,
-    color: '#a855f7', // بنفش ملایم
+    color: '#a855f7',
     bgLight: '#faf5ff',
     actionType: 'tab',
     targetTab: 'exams',
   },
   {
-    id: 'analytics',
+    id: 'progress',
     labelFa: 'کارنامه و تراز',
-    labelEn: 'Rank & Stats',
-    desc: 'تحلیل ترازها، درصد پاسخگویی و نقاط قوت و ضعف مباحث',
     icon: BarChart2,
-    color: '#10b981', // سبز زمردی
-    bgLight: '#ecfdf5',
+    color: '#22c55e',
+    bgLight: '#f0fdf4',
     actionType: 'tab',
     targetTab: 'progress',
   },
   {
     id: 'sounds',
     labelFa: 'صداهای تمرکز',
-    labelEn: 'Ambient Waves',
-    desc: 'نویز سفید، صدای باران و امواج آرامش‌بخش برای مطالعه بی‌صدا',
     icon: Headphones,
-    color: '#6366f1', // نیلی
+    color: '#6366f1',
     bgLight: '#eef2ff',
     actionType: 'sound',
   },
+  {
+    id: 'profile',
+    labelFa: 'پروفایل من',
+    icon: User,
+    color: '#eab308',
+    bgLight: '#fefce8',
+    actionType: 'profile',
+  },
+  {
+    id: 'backup',
+    labelFa: 'پشتیبان‌گیری',
+    icon: DatabaseBackup,
+    color: '#14b8a6',
+    bgLight: '#f0fdfa',
+    actionType: 'backup',
+  },
+  {
+    id: 'about',
+    labelFa: 'درباره‌ی برنامه',
+    icon: Info,
+    color: '#64748b',
+    bgLight: '#f1f5f9',
+    actionType: 'about',
+  },
+  {
+    id: 'reset',
+    labelFa: 'پاک کردن داده‌ها',
+    icon: Trash2,
+    color: '#ef4444',
+    bgLight: '#fef2f2',
+    actionType: 'reset',
+  },
 ];
+
+const pad2 = (value: number) => toPersianDigits(String(Math.max(0, value)).padStart(2, '0'));
+
+/** شمارش معکوس تا روز کنکور روی تصویر زمین */
+const EarthCountdown: React.FC<{ targetIso: string; onPress: () => void }> = ({
+  targetIso,
+  onPress,
+}) => {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const remaining = useMemo(() => {
+    if (!targetIso) return null;
+    const target = new Date(`${targetIso}T08:00:00`).getTime();
+    if (Number.isNaN(target)) return null;
+    const diff = Math.max(0, target - now);
+    return {
+      days: Math.floor(diff / 86_400_000),
+      hours: Math.floor((diff % 86_400_000) / 3_600_000),
+      minutes: Math.floor((diff % 3_600_000) / 60_000),
+      seconds: Math.floor((diff % 60_000) / 1000),
+    };
+  }, [targetIso, now]);
+
+  return (
+    <button
+      type="button"
+      onClick={onPress}
+      className="flex-1 min-w-0 relative rounded-2xl overflow-hidden h-[64px] bg-slate-900 bg-cover bg-center active:scale-[0.99] transition-transform"
+      style={{ backgroundImage: "url('/earth-countdown.jpg')" }}
+      title="تاریخ کنکور"
+    >
+      <span className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-900/35 to-transparent" />
+
+      {remaining ? (
+        <span className="relative flex items-center justify-center gap-2 h-full px-2" dir="ltr">
+          {[
+            { value: remaining.days, label: 'روز' },
+            { value: remaining.hours, label: 'ساعت' },
+            { value: remaining.minutes, label: 'دقیقه' },
+            { value: remaining.seconds, label: 'ثانیه' },
+          ].map((part, index) => (
+            <React.Fragment key={part.label}>
+              {index > 0 && (
+                <span className="text-white/50 text-base font-black -mt-2">:</span>
+              )}
+              <span className="flex flex-col items-center leading-none">
+                <span className="text-white text-lg font-black tabular-nums drop-shadow">
+                  {pad2(part.value)}
+                </span>
+                <span className="text-[9px] font-bold text-white/70 mt-0.5">{part.label}</span>
+              </span>
+            </React.Fragment>
+          ))}
+        </span>
+      ) : (
+        <span className="relative flex flex-col items-center justify-center h-full text-white">
+          <span className="text-[12px] font-black">تاریخ کنکور تعیین نشده</span>
+          <span className="text-[10px] font-bold text-white/70 mt-0.5">
+            برای تنظیم لمس کنید
+          </span>
+        </span>
+      )}
+    </button>
+  );
+};
+
+const RailButton: React.FC<{
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+  tone?: string;
+}> = ({ label, onClick, children, tone }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    title={label}
+    aria-label={label}
+    className={`w-9 h-9 rounded-2xl flex items-center justify-center active:scale-90 transition-all ${
+      tone ?? 'bg-slate-50 text-slate-500 hover:text-slate-800'
+    }`}
+  >
+    {children}
+  </button>
+);
 
 export const ArcWheelMenu: React.FC<ArcWheelMenuProps> = ({
   isOpen,
   onClose,
+  profile,
+  theme,
+  onToggleTheme,
   onNavigateTab,
   onStartFocusSubject,
   onOpenSounds,
+  onOpenSettings,
+  onOpenProfile,
+  onOpenManualLog,
+  onOpenBackup,
+  onOpenAbout,
+  onResetData,
+  telegramUrl = '#',
+  instagramUrl = '#',
 }) => {
-  // Center default item is index 3 (تست‌زنی سرعتی - Pink hero)
-  const [selectedIndex, setSelectedIndex] = useState(3);
-  const [scrollOffset, setScrollOffset] = useState(3);
+  const itemsCount = ARC_MENU_ITEMS.length;
+  const middleIndex = Math.floor(itemsCount / 2);
+
+  const [selectedIndex, setSelectedIndex] = useState(middleIndex);
+  const [scrollOffset, setScrollOffset] = useState(middleIndex);
   const [isDragging, setIsDragging] = useState(false);
 
   const wheelAreaRef = useRef<HTMLDivElement | null>(null);
-  const [wheelDims, setWheelDims] = useState({ width: 375, height: 520 });
+  const [wheelDims, setWheelDims] = useState({ width: 375, height: 560 });
 
   const dragStartY = useRef(0);
   const dragStartOffset = useRef(0);
+  const dragDistance = useRef(0);
 
-  // Measure wheel area dynamically
   useEffect(() => {
     if (!isOpen) return;
     const updateSize = () => {
-      if (wheelAreaRef.current) {
-        const rect = wheelAreaRef.current.getBoundingClientRect();
-        if (rect.width > 0 && rect.height > 0) {
-          setWheelDims({ width: rect.width, height: rect.height });
-        }
+      const rect = wheelAreaRef.current?.getBoundingClientRect();
+      if (rect && rect.width > 0 && rect.height > 0) {
+        setWheelDims({ width: rect.width, height: rect.height });
       }
     };
     updateSize();
+    const raf = window.requestAnimationFrame(updateSize);
     window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener('resize', updateSize);
+    };
   }, [isOpen]);
 
-  // Sync scrollOffset when selectedIndex changes outside drag
   useEffect(() => {
-    if (!isDragging) {
-      setScrollOffset(selectedIndex);
-    }
+    if (!isDragging) setScrollOffset(selectedIndex);
   }, [selectedIndex, isDragging]);
 
-  // Centered Arc geometry parameters
-  // Apex of arc is brought towards the horizontal center of the container
-  const itemAngleStep = 14; // degrees between items
-  const radius = Math.min(340, wheelDims.height * 0.62);
-  const apexX = wheelDims.width * 0.58; // Center the apex near middle of view
-  const arcCenterX = apexX + radius; // Circle center to the right
-  const arcCenterY = wheelDims.height / 2; // Vertical middle
+  /* ---------------------------------------------------------------- */
+  /* هندسه‌ی قوس — قوس کوچک‌تر و بازتر تا همه‌ی گزینه‌ها در کادر جا شوند */
+  /* ---------------------------------------------------------------- */
+  // نیم‌ارتفاع قابل استفاده و برآمدگی افقی قوس؛ شعاع از همین دو به دست می‌آید
+  // تا هم همه‌ی گزینه‌ها در کادر جا شوند و هم قوس از لبه‌ی صفحه بیرون نزند.
+  const halfHeight = Math.max(120, wheelDims.height / 2 - 26);
+  const bulge = Math.max(70, wheelDims.width * 0.34);
+  const radius = (halfHeight * halfHeight + bulge * bulge) / (2 * bulge);
+  const maxAngleDeg = (Math.asin(Math.min(1, halfHeight / radius)) * 180) / Math.PI;
+  const itemAngleStep = (2 * maxAngleDeg) / Math.max(1, itemsCount - 1);
+  const spacing = (itemAngleStep * Math.PI * radius) / 180;
+  const apexX = wheelDims.width * 0.56;
+  const arcCenterX = apexX + radius;
+  const arcCenterY = wheelDims.height / 2;
 
-  // Pointer drag events
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     setIsDragging(true);
-    dragStartY.current = e.clientY;
+    dragStartY.current = event.clientY;
     dragStartOffset.current = scrollOffset;
+    dragDistance.current = 0;
     try {
-      e.currentTarget.setPointerCapture(e.pointerId);
+      event.currentTarget.setPointerCapture(event.pointerId);
     } catch {
-      // ignore
+      // بی‌اهمیت
     }
   };
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging) return;
-    const deltaY = e.clientY - dragStartY.current;
-    // ~55px drag equals 1 item movement
-    const deltaItems = -deltaY / 55;
-    const newOffset = dragStartOffset.current + deltaItems;
-    const clamped = Math.max(-0.4, Math.min(ARC_MENU_ITEMS.length - 0.6, newOffset));
-    setScrollOffset(clamped);
+    const deltaY = event.clientY - dragStartY.current;
+    dragDistance.current = Math.max(dragDistance.current, Math.abs(deltaY));
+    const newOffset = dragStartOffset.current + -deltaY / Math.max(28, spacing);
+    setScrollOffset(Math.max(-0.4, Math.min(itemsCount - 0.6, newOffset)));
   };
 
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging) return;
     setIsDragging(false);
     try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
+      event.currentTarget.releasePointerCapture(event.pointerId);
     } catch {
-      // ignore
+      // بی‌اهمیت
     }
     const nearest = Math.round(scrollOffset);
-    const finalIndex = Math.max(0, Math.min(ARC_MENU_ITEMS.length - 1, nearest));
+    const finalIndex = Math.max(0, Math.min(itemsCount - 1, nearest));
     setSelectedIndex(finalIndex);
     setScrollOffset(finalIndex);
   };
 
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 1 : -1;
-    const newIndex = Math.max(0, Math.min(ARC_MENU_ITEMS.length - 1, selectedIndex + delta));
-    setSelectedIndex(newIndex);
+  const handleWheel = (event: React.WheelEvent) => {
+    const delta = event.deltaY > 0 ? 1 : -1;
+    setSelectedIndex((prev) => Math.max(0, Math.min(itemsCount - 1, prev + delta)));
   };
 
+  const step = (delta: number) =>
+    setSelectedIndex((prev) => Math.max(0, Math.min(itemsCount - 1, prev + delta)));
+
   const handleExecuteAction = (item: ArcMenuItem) => {
-    if (item.actionType === 'tab' && item.targetTab) {
-      onNavigateTab(item.targetTab);
-      onClose();
-    } else if (item.actionType === 'sound') {
-      if (onOpenSounds) onOpenSounds();
-      onClose();
-    } else if (item.actionType === 'focus_subject' && item.subjectName) {
-      if (onStartFocusSubject) onStartFocusSubject(item.subjectName);
-      onNavigateTab('focus');
-      onClose();
-    } else if (item.actionType === 'break') {
-      if (onStartFocusSubject) onStartFocusSubject('استراحت و تنفس');
-      onNavigateTab('focus');
-      onClose();
+    switch (item.actionType) {
+      case 'tab':
+        if (item.targetTab) onNavigateTab(item.targetTab);
+        break;
+      case 'sound':
+        onOpenSounds();
+        break;
+      case 'focus_subject':
+        if (item.subjectName) onStartFocusSubject(item.subjectName);
+        else onNavigateTab('focus');
+        break;
+      case 'break':
+        onStartFocusSubject('استراحت و تنفس');
+        break;
+      case 'profile':
+        onOpenProfile();
+        break;
+      case 'manual_log':
+        onOpenManualLog();
+        break;
+      case 'backup':
+        onOpenBackup();
+        break;
+      case 'about':
+        onOpenAbout();
+        break;
+      case 'reset':
+        onResetData();
+        break;
+      default:
+        break;
     }
+    onClose();
   };
 
   if (!isOpen) return null;
 
-  const currentActiveItem = ARC_MENU_ITEMS[selectedIndex] || ARC_MENU_ITEMS[0];
+  const activeItem = ARC_MENU_ITEMS[selectedIndex] ?? ARC_MENU_ITEMS[0];
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200 p-3"
+      className="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm animate-in fade-in duration-150 flex justify-center"
       onClick={onClose}
     >
-      {/* Phone Canvas Frame */}
       <div
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-[390px] h-[780px] max-h-[96vh] bg-[#f4f5f8] rounded-[44px] shadow-[0_30px_90px_rgba(0,0,0,0.25)] border-[7px] border-white relative overflow-hidden flex flex-col justify-between select-none touch-none"
+        onClick={(event) => event.stopPropagation()}
+        className="w-full max-w-md h-full bg-[#f4f5f8] relative overflow-hidden flex flex-col select-none touch-none shadow-2xl"
       >
-        {/* TOP STATUS BAR & HEADER */}
-        <div className="pt-5 px-5 flex items-center justify-between z-20">
-          <button
-            onClick={onClose}
-            className="w-10 h-10 rounded-2xl bg-white border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-500 hover:text-slate-800 active:scale-95 transition-all"
-            aria-label="بستن"
-          >
-            <X className="w-5 h-5" />
-          </button>
-
-          <div className="text-center">
-            <h2 className="text-base font-black text-slate-800 tracking-tight">
-              منوی قوسی فعالیت‌ها
-            </h2>
-            <span className="text-[11px] font-bold text-slate-400">
-              چرخش و انتخاب مستقیم
-            </span>
+        {/* ریل سمت چپ: بستن، بالا/پایین، تنظیمات، تم، شبکه‌های اجتماعی */}
+        <div className="absolute left-3 safe-sheet-top z-30 flex flex-col gap-2">
+          <div className="bg-white rounded-3xl p-1.5 border border-slate-100 shadow-[0_4px_14px_rgba(15,23,42,0.07)]">
+            <RailButton label="بستن منو" onClick={onClose}>
+              <X className="w-4 h-4" />
+            </RailButton>
           </div>
 
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => {
-                const prev = Math.max(0, selectedIndex - 1);
-                setSelectedIndex(prev);
-              }}
-              title="قبلی"
-              className="w-8 h-8 rounded-xl bg-white text-slate-500 hover:text-slate-800 flex items-center justify-center shadow-2xs border border-slate-100 active:scale-90"
-            >
+          <div className="bg-white rounded-3xl p-1.5 border border-slate-100 shadow-[0_4px_14px_rgba(15,23,42,0.07)] flex flex-col gap-1">
+            <RailButton label="گزینه‌ی قبلی" onClick={() => step(-1)}>
               <ChevronUp className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => {
-                const next = Math.min(ARC_MENU_ITEMS.length - 1, selectedIndex + 1);
-                setSelectedIndex(next);
-              }}
-              title="بعدی"
-              className="w-8 h-8 rounded-xl bg-white text-slate-500 hover:text-slate-800 flex items-center justify-center shadow-2xs border border-slate-100 active:scale-90"
-            >
+            </RailButton>
+            <RailButton label="گزینه‌ی بعدی" onClick={() => step(1)}>
               <ChevronDown className="w-4 h-4" />
-            </button>
+            </RailButton>
+          </div>
+
+          <div className="bg-white rounded-3xl p-1.5 border border-slate-100 shadow-[0_4px_14px_rgba(15,23,42,0.07)] flex flex-col gap-1">
+            <RailButton
+              label="تنظیمات"
+              onClick={() => {
+                onOpenSettings();
+                onClose();
+              }}
+            >
+              <Settings className="w-4 h-4" />
+            </RailButton>
+            <RailButton
+              label={theme === 'dark' ? 'تم روشن' : 'تم تاریک'}
+              onClick={onToggleTheme}
+              tone="bg-amber-50 text-amber-500"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </RailButton>
+          </div>
+
+          <div className="bg-white rounded-3xl p-1.5 border border-slate-100 shadow-[0_4px_14px_rgba(15,23,42,0.07)] flex flex-col gap-1">
+            <a
+              href={telegramUrl}
+              target="_blank"
+              rel="noreferrer"
+              title="کانال تلگرام"
+              aria-label="کانال تلگرام"
+              className="w-9 h-9 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center active:scale-90 transition-all"
+            >
+              <Send className="w-4 h-4" />
+            </a>
+            <a
+              href={instagramUrl}
+              target="_blank"
+              rel="noreferrer"
+              title="پیج اینستاگرام"
+              aria-label="پیج اینستاگرام"
+              className="w-9 h-9 rounded-2xl bg-pink-50 text-pink-500 flex items-center justify-center active:scale-90 transition-all"
+            >
+              <Instagram className="w-4 h-4" />
+            </a>
           </div>
         </div>
 
-        {/* INTERACTIVE CENTERED CURVED WHEEL CONTAINER */}
+        {/* قوس تعاملی */}
         <div
           ref={wheelAreaRef}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
           onWheel={handleWheel}
-          className="relative flex-1 w-full overflow-hidden flex items-center cursor-grab active:cursor-grabbing"
+          className="relative flex-1 w-full overflow-hidden cursor-grab active:cursor-grabbing"
         >
-          {/* Centered SVG Arc Guide Line */}
+          {/* خط راهنمای قوس */}
           <svg
             className="absolute inset-0 w-full h-full pointer-events-none"
             viewBox={`0 0 ${wheelDims.width} ${wheelDims.height}`}
@@ -328,102 +526,78 @@ export const ArcWheelMenu: React.FC<ArcWheelMenuProps> = ({
             />
           </svg>
 
-          {/* DARK INDICATOR NOTCH (Capsule pill on the centered arc at the equator) */}
+          {/* نشانگر تیره روی قوس */}
           <div
-            className="absolute z-20 pointer-events-none transition-transform duration-150"
-            style={{
-              left: `${apexX - 12}px`,
-              top: `${arcCenterY - 5}px`,
-            }}
+            className="absolute z-20 pointer-events-none"
+            style={{ left: `${apexX - 12}px`, top: `${arcCenterY - 5}px` }}
           >
             <div className="w-6 h-2.5 bg-[#20293a] rounded-full shadow-xs" />
           </div>
 
-          {/* WHEEL ITEMS ALONG THE CENTERED ARC */}
           <div className="absolute inset-0 w-full h-full pointer-events-none">
-            {ARC_MENU_ITEMS.map((item, idx) => {
-              const diff = idx - scrollOffset;
-
-              // Hide items that are too far from center
-              if (Math.abs(diff) > 4.2) return null;
-
-              // Angle in radians (0 at equator)
-              const angleDeg = diff * itemAngleStep;
-              const angleRad = (angleDeg * Math.PI) / 180;
-
-              // Coordinates on circular arc
+            {ARC_MENU_ITEMS.map((item, index) => {
+              const diff = index - scrollOffset;
+              const angleRad = (diff * itemAngleStep * Math.PI) / 180;
               const posX = arcCenterX - radius * Math.cos(angleRad);
               const posY = arcCenterY + radius * Math.sin(angleRad);
 
               const isSelected = Math.abs(diff) < 0.45;
-              const opacity = Math.max(0.2, 1 - Math.abs(diff) * 0.22);
-              const scale = isSelected ? 1.08 : Math.max(0.85, 1 - Math.abs(diff) * 0.04);
-
+              const opacity = Math.max(0.28, 1 - Math.abs(diff) * 0.12);
+              const scale = isSelected ? 1.06 : Math.max(0.86, 1 - Math.abs(diff) * 0.02);
               const ItemIcon = item.icon;
 
               return (
                 <div
                   key={item.id}
                   onClick={() => {
-                    setSelectedIndex(idx);
-                    setScrollOffset(idx);
+                    if (dragDistance.current > 8) return;
+                    if (isSelected) {
+                      handleExecuteAction(item);
+                      return;
+                    }
+                    setSelectedIndex(index);
+                    setScrollOffset(index);
                   }}
                   className="absolute pointer-events-auto cursor-pointer flex items-center transition-transform duration-75 ease-out"
                   style={{
                     left: `${posX}px`,
                     top: `${posY}px`,
                     transform: `translate(-100%, -50%) scale(${scale})`,
-                    opacity: opacity,
+                    opacity,
                     zIndex: isSelected ? 30 : 10,
                   }}
                 >
-                  {/* PERSIAN LABEL BADGE (To the left of icon) */}
                   <div className="flex items-center gap-2 mr-3">
                     {isSelected ? (
-                      /* ACTIVE FLOATING WHITE PILL IN PERSIAN */
-                      <div className="bg-white px-4 py-2 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.04)] border border-slate-100 flex items-center gap-2 animate-in fade-in zoom-in-95 duration-150">
+                      <div className="bg-white px-4 py-2 rounded-full shadow-[0_4px_16px_rgba(15,23,42,0.09)] border border-slate-100 flex items-center gap-2">
                         <span className="text-[14px] font-black text-slate-900 whitespace-nowrap">
                           {item.labelFa}
                         </span>
                       </div>
                     ) : (
-                      /* INACTIVE SOFT PERSIAN TEXT */
-                      <div className="text-right">
-                        <span className="text-[13px] font-bold text-slate-400 hover:text-slate-600 transition-colors whitespace-nowrap">
-                          {item.labelFa}
-                        </span>
-                      </div>
+                      <span className="text-[12.5px] font-bold text-slate-400 whitespace-nowrap">
+                        {item.labelFa}
+                      </span>
                     )}
                   </div>
 
-                  {/* ICON BUTTON ON THE ARC */}
                   <div className="relative flex items-center justify-center">
                     {isSelected ? (
-                      /* ACTIVE ICON (Surrounded by vibrant pill outline, like pink bike in reference) */
                       <div
-                        className="px-3.5 py-1.5 rounded-full flex items-center justify-center transition-all shadow-xs"
+                        className="px-3.5 py-1.5 rounded-full flex items-center justify-center shadow-xs"
                         style={{
                           border: `2px solid ${item.color}`,
                           backgroundColor: `${item.color}15`,
                         }}
                       >
-                        <ItemIcon
-                          className="w-5 h-5 stroke-[2.4]"
-                          style={{ color: item.color }}
-                        />
+                        <ItemIcon className="w-5 h-5 stroke-[2.4]" style={{ color: item.color }} />
                       </div>
                     ) : (
-                      /* INACTIVE SOFT SQUIRCLE ICON */
                       <div
-                        className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all"
-                        style={{
-                          backgroundColor: item.bgLight,
-                        }}
+                        className="w-8 h-8 rounded-2xl flex items-center justify-center"
+                        style={{ backgroundColor: item.bgLight }}
                       >
-                        <ItemIcon
-                          className="w-4 h-4 stroke-[2]"
-                          style={{ color: item.color }}
-                        />
+                        <ItemIcon className="w-4 h-4 stroke-[2]" style={{ color: item.color }} />
                       </div>
                     )}
                   </div>
@@ -433,38 +607,25 @@ export const ArcWheelMenu: React.FC<ArcWheelMenuProps> = ({
           </div>
         </div>
 
-        {/* BOTTOM ACTIVE ACTION BAR IN PURE PERSIAN */}
-        <div className="relative z-20 pb-7 pt-3 px-6 bg-gradient-to-t from-[#f4f5f8] via-[#f4f5f8] to-transparent flex flex-col gap-2.5">
-          {/* Active Item Description card */}
-          <div className="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.04)] flex items-center justify-between">
-            <div className="text-right flex-1 pr-1">
-              <div className="text-xs font-black text-slate-800 flex items-center gap-1.5 justify-end">
-                <span>{currentActiveItem.labelFa}</span>
-                <span
-                  className="w-2.5 h-2.5 rounded-full"
-                  style={{ backgroundColor: currentActiveItem.color }}
-                />
-              </div>
-              <p className="text-[11px] text-slate-500 mt-0.5 leading-snug line-clamp-1">
-                {currentActiveItem.desc}
-              </p>
-            </div>
-            <button
-              onClick={() => handleExecuteAction(currentActiveItem)}
-              className="ml-3 px-4 py-2.5 rounded-xl text-white font-black text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
-              style={{
-                backgroundColor: currentActiveItem.color,
-                boxShadow: `0 6px 18px -2px ${currentActiveItem.color}55`,
+        {/* پایین منو: شمارش معکوس روی تصویر زمین + دکمه‌ی «بزن بریم» */}
+        <div className="relative z-20 px-4 pt-2 safe-sheet-bottom">
+          <div className="bg-white rounded-[26px] p-2.5 border border-slate-100 shadow-[0_10px_30px_rgba(15,23,42,0.08)] flex items-center gap-2.5">
+            <EarthCountdown
+              targetIso={profile.examTargetDate}
+              onPress={() => {
+                onOpenSettings();
+                onClose();
               }}
-            >
-              <span>شروع</span>
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-          </div>
+            />
 
-          {/* Quick swipe hint in Persian */}
-          <div className="text-center text-[11px] text-slate-400 font-medium">
-            انگشت خود را به بالا و پایین بکشید یا روی فعالیت‌ها ضربه بزنید
+            <button
+              type="button"
+              onClick={() => handleExecuteAction(activeItem)}
+              className="px-4 h-[64px] rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-900 font-black text-[13px] flex items-center gap-1.5 shadow-[0_8px_20px_rgba(251,191,36,0.45)] active:scale-95 transition-all shrink-0"
+            >
+              <span>بزن بریم</span>
+              <ArrowLeft className="w-4 h-4 stroke-[2.6]" />
+            </button>
           </div>
         </div>
       </div>

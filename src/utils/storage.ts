@@ -114,6 +114,8 @@ export const EMPTY_PROFILE: UserProfile = {
   pomodoroWorkMinutes: 25,
   pomodoroBreakMinutes: 5,
   notificationsEnabled: true,
+  avatarDataUrl: '',
+  countdownStyle: 'gradient-ring',
   isOnboarded: false,
 };
 
@@ -160,6 +162,19 @@ function sanitizeIso(value: unknown): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
 }
 
+/** فقط عکس‌های محلی (data URL) و حداکثر ~۱.۵ مگابایت پذیرفته می‌شود */
+function sanitizeAvatar(raw: unknown): string {
+  const value = typeof raw === 'string' ? raw : '';
+  if (!/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(value)) return '';
+  if (value.length > 1_600_000) return '';
+  return value;
+}
+
+function validateCountdownStyle(raw: unknown): any {
+  const valid = ['gradient-ring', 'liquid-ring', 'digital-earth', 'mountain-progress', 'vertical-gauge'];
+  return typeof raw === 'string' && valid.includes(raw) ? raw : 'gradient-ring';
+}
+
 export function sanitizeProfile(raw: unknown): UserProfile | null {
   if (!isObj(raw)) return null;
   const major = ALL_MAJORS.includes(raw.major as MajorType)
@@ -175,6 +190,8 @@ export function sanitizeProfile(raw: unknown): UserProfile | null {
     pomodoroWorkMinutes: num(raw.pomodoroWorkMinutes, 25, 5, 180),
     pomodoroBreakMinutes: num(raw.pomodoroBreakMinutes, 5, 1, 60),
     notificationsEnabled: raw.notificationsEnabled !== false,
+    avatarDataUrl: sanitizeAvatar(raw.avatarDataUrl),
+    countdownStyle: validateCountdownStyle(raw.countdownStyle),
     isOnboarded: raw.isOnboarded === true,
   };
 }

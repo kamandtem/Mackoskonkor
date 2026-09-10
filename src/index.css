@@ -379,3 +379,48 @@ main label>span,.fixed label>span{font-weight:850;color:oklch(42% .025 285)}
 .virtual-filter-row{display:flex;gap:7px;min-height:38px;align-items:center}.virtual-filter-row button{padding:0 13px;min-height:34px;border-radius:12px;background:var(--hall-soft);color:var(--hall-muted);font-size:.61rem;font-weight:900}.virtual-filter-row button.active{background:oklch(94% .04 285);color:var(--hall-indigo)}
 .location-picker{max-height:76dvh}.location-options{display:flex;flex-direction:column;gap:9px;overflow:auto}.location-options>button{min-height:78px;padding:11px 12px;display:grid;grid-template-columns:43px 1fr 18px;align-items:center;gap:10px;text-align:right;border:1px solid var(--hall-line);border-radius:20px;background:var(--hall-surface)}.location-options>button.selected{border-color:oklch(73% .13 285);background:oklch(96% .025 285)}.location-options>button>span{width:43px;height:43px;display:grid;place-items:center;border-radius:15px;background:oklch(94% .04 285);color:var(--hall-indigo)}.location-options svg{width:18px}.location-options>button>div{display:flex;flex-direction:column;gap:3px}.location-options b{font-size:.74rem}.location-options small,.location-options em{font-size:.57rem;color:var(--hall-muted);font-style:normal}.location-options em{color:var(--hall-green);font-weight:850}.location-options>button>svg{color:var(--hall-muted)}
 @media(max-width:360px){.app-logo-fit{transform:scale(.7)}}
+
+
+.notification-enable{width:calc(100% - 24px);margin:10px 12px;padding:10px 12px;display:flex;align-items:center;gap:9px;border:1px solid oklch(86% .05 285);border-radius:16px;background:oklch(96% .035 285);color:oklch(46% .15 285);text-align:right}.notification-enable>svg{width:18px}.notification-enable span{display:flex;flex-direction:column;gap:2px}.notification-enable b{font-size:.65rem}.notification-enable small{font-size:.55rem;color:oklch(58% .03 285)}
+.dark .notification-enable{background:oklch(25% .035 285);border-color:oklch(36% .05 285);color:oklch(82% .08 285)}
+
+/* v2.6.6 focus dial stabilization */
+.focus-dial-wrap{overflow:hidden;isolation:isolate}
+.focus-dial-wrap>svg{display:block;flex:0 0 auto;position:absolute;inset:0;margin:auto}
+.focus-dial-wrap>div:not(.focus-orbit-layer){position:absolute!important;inset:40px!important;margin:0!important;width:auto!important;height:auto!important;transform:none!important;z-index:3!important}
+.focus-dial-wrap>.focus-orbit-layer{position:absolute!important;inset:0!important;overflow:hidden;z-index:1!important;pointer-events:none}
+.focus-dial-wrap.is-running:after{inset:23px!important;z-index:2!important}
+.orbit-ring{position:absolute!important;left:50%!important;top:50%!important;translate:-50% -50%!important;transform-origin:center!important}
+.focus-page{overflow:visible}
+@media(max-width:360px){.focus-dial-wrap{transform:scale(.86);margin:-18px 0}.focus-controls{gap:7px;grid-template-columns:44px minmax(0,1fr) 44px}.focus-main-btn{font-size:.72rem}}
+
+/* v2.6.7 home countdown composition */
+.countdown-flip-card-front{}
+.countdown-flip-front{padding:17px 16px 16px!important;background:oklch(99% .006 285)!important}
+.countdown-card-header{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:44px;padding:0 2px}
+.countdown-card-header>span{display:flex;align-items:center;gap:6px;min-width:0;color:oklch(48% .035 285);font-size:.75rem;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.countdown-card-header>span svg{width:17px;color:oklch(59% .19 285)}
+.countdown-card-header button{min-height:42px;padding:0 13px;display:flex;align-items:center;gap:6px;border-radius:16px;background:oklch(95% .025 285);color:oklch(55% .18 285);font-size:.68rem;font-weight:900;white-space:nowrap}
+.countdown-card-header button svg{width:17px}.countdown-card-header button:active{transform:scale(.97)}
+.countdown-card-body{margin-top:2px!important}.countdown-card-body>div:first-child{margin-top:0!important}
+.countdown-card-metrics{margin-top:3px!important;padding:16px 0 12px;border-top:1px solid oklch(91% .012 285);border-bottom:1px solid oklch(93% .01 285)}
+.countdown-card-metrics>div{min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.countdown-card-metrics>div+div{border-right:1px solid oklch(91% .012 285)}
+.countdown-card-metrics .text-lg{font-size:1.2rem;line-height:1.1}.countdown-card-metrics .text-[11px]{font-size:.65rem;color:oklch(59% .025 285)}
+.countdown-card-action{margin-top:14px!important}.countdown-card-action button{min-height:57px;border-radius:20px!important}
+.countdown-flip-card-shell{min-height:590px!important}
+
+/* Vector mountain route: no bitmap dependency, winding road and points stay in the SVG scene. */
+.journey-map-bg{background-image:linear-gradient(180deg,oklch(90% .035 230),oklch(39% .12 275))!important}
+.journey-map-bg:before{display:block!important;inset:0!important;clip-path:none!important;background:linear-gradient(154deg,transparent 0 20%,oklch(54% .12 155) 20% 55%,oklch(31% .12 255) 55% 100%)!important;opacity:.86}
+.journey-map-bg:after{background-image:linear-gradient(180deg,oklch(99% .01 285/.05),oklch(18% .05 285/.35)),radial-gradient(circle at 76% 13%,oklch(99% .02 83/.65) 0 2%,transparent 2.5%)!important}
+.journey-path{inset:114px 23px 54px!important;background:transparent!important;overflow:visible}
+.journey-path svg{filter:drop-shadow(0 5px 8px oklch(20% .05 285/.2));overflow:visible}
+.journey-path svg path:first-of-type{stroke:oklch(99% .015 285/.82)!important;stroke-width:7!important}
+.journey-path svg path:last-of-type{stroke:oklch(81% .12 155)!important;stroke-width:2.2!important;stroke-dasharray:none!important;stroke-dashoffset:0!important}
+.journey-point i{width:28px;height:28px;background:oklch(99% .006 285/.82);color:oklch(35% .09 285);border:2px solid oklch(99% .02 285)}
+.journey-point.passed i{background:oklch(98% .01 285);box-shadow:0 0 0 5px oklch(99% .01 285/.14)}
+.journey-user{width:44px;height:44px;background:oklch(99% .006 285);border:3px solid oklch(70% .19 42);box-shadow:0 7px 16px oklch(20% .06 285/.28)}
+@media(max-width:370px){.countdown-flip-card-shell{margin-left:12px;margin-right:12px}.countdown-card-header button{padding:0 10px}.countdown-card-header>span{font-size:.68rem}}
+.app-logo-fit{width:26px!important;height:26px!important;object-fit:contain!important;object-position:center!important;transform:scale(.62)!important}
+.header-logo-button{overflow:hidden;display:grid;place-items:center}

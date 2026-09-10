@@ -186,8 +186,11 @@ export default function App() {
     if (isHydrated) saveNotes(notes);
   }, [isHydrated, notes]);
 
-  // مدیریت برگشت: یک بار به خانه/لایه‌ی قبل، دوبار پشت‌سرهم درخواست خروج.
-  // با history کار می‌کنیم تا در WebView اندروید و مرورگر رفتار یکسان بماند.
+  // برگشت پایدار: اول لایه باز بسته می‌شود، بعد صفحه قبلی؛ در خانه دوبار برگشت خروج را می‌پرسد.
+  const uiStateRef = useRef({ currentTab, isQuickMenuOpen, isArcMenuOpen, isSettingsOpen, isProfileOpen, isSoundsOpen, isManualLogOpen, isBackupOpen, isAboutOpen, isNotesOpen, isResetConfirmOpen, isExitConfirmOpen });
+  useEffect(() => {
+    uiStateRef.current = { currentTab, isQuickMenuOpen, isArcMenuOpen, isSettingsOpen, isProfileOpen, isSoundsOpen, isManualLogOpen, isBackupOpen, isAboutOpen, isNotesOpen, isResetConfirmOpen, isExitConfirmOpen };
+  }, [currentTab, isQuickMenuOpen, isArcMenuOpen, isSettingsOpen, isProfileOpen, isSoundsOpen, isManualLogOpen, isBackupOpen, isAboutOpen, isNotesOpen, isResetConfirmOpen, isExitConfirmOpen]);
   useEffect(() => {
     window.history.replaceState({ konkurRoot: true }, '', window.location.href);
     const onBack = () => {
@@ -195,31 +198,21 @@ export default function App() {
       const now = Date.now();
       const isDoubleBack = now - lastBackPressRef.current < 1500;
       lastBackPressRef.current = now;
-
-      if (isQuickMenuOpen || isArcMenuOpen || isSettingsOpen || isProfileOpen || isSoundsOpen || isManualLogOpen || isBackupOpen || isAboutOpen || isNotesOpen) {
-        setIsQuickMenuOpen(false);
-        setIsArcMenuOpen(false);
-        setIsSettingsOpen(false);
-        setIsProfileOpen(false);
-        setIsSoundsOpen(false);
-        setIsManualLogOpen(false);
-        setIsBackupOpen(false);
-        setIsAboutOpen(false);
-        setIsNotesOpen(false);
-        return;
+      const state = uiStateRef.current;
+      if (state.isQuickMenuOpen || state.isArcMenuOpen || state.isSettingsOpen || state.isProfileOpen || state.isSoundsOpen || state.isManualLogOpen || state.isBackupOpen || state.isAboutOpen || state.isNotesOpen) {
+        setIsQuickMenuOpen(false); setIsArcMenuOpen(false); setIsSettingsOpen(false); setIsProfileOpen(false); setIsSoundsOpen(false); setIsManualLogOpen(false); setIsBackupOpen(false); setIsAboutOpen(false); setIsNotesOpen(false); return;
       }
-      if (isResetConfirmOpen || isExitConfirmOpen) return;
-      if (currentTab !== 'home') {
+      if (state.isResetConfirmOpen || state.isExitConfirmOpen) return;
+      if (state.currentTab !== 'home') {
         const previous = navigationStackRef.current.pop() ?? 'home';
-        setCurrentTab(previous);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
+        setCurrentTab(previous); window.scrollTo({ top: 0, behavior: 'smooth' }); return;
       }
       if (isDoubleBack) setIsExitConfirmOpen(true);
     };
     window.addEventListener('popstate', onBack);
-    return () => window.removeEventListener('popstate', onBack);
-  }, [currentTab, isQuickMenuOpen, isArcMenuOpen, isSettingsOpen, isProfileOpen, isSoundsOpen, isManualLogOpen, isBackupOpen, isAboutOpen, isNotesOpen, isResetConfirmOpen, isExitConfirmOpen]);
+    document.addEventListener('backbutton', onBack as EventListener);
+    return () => { window.removeEventListener('popstate', onBack); document.removeEventListener('backbutton', onBack as EventListener); };
+  }, []);
 
   // صدای محیط را با بسته شدن برنامه رها کن
   useEffect(() => () => soundEngine.stop(), []);
@@ -234,6 +227,24 @@ export default function App() {
   const drillStats = useMemo(() => computeDrillStats(drills), [drills]);
   const todayTasks = useMemo(() => tasksForDay(tasks, todayJalaliKey()), [tasks]);
   const upcomingExam = useMemo(() => nextExam(exams), [exams]);
+
+  const enableNotifications = useCallback(async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') new Notification('اعلان‌های کنکور من فعال شد', { body: 'یادآوری‌های برنامه و آزمون‌ها را از دست نمی‌دهی.' });
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated || !profile.notificationsEnabled || typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
+    const pending = todayTasks.filter(t => !t.isCompleted);
+    if (pending.length > 0) {
+      const key = `konkur-notified-${todayJalaliKey()}-${pending.length}`;
+      if (localStorage.getItem(key) !== '1') {
+        new Notification('برنامه امروزت آماده است', { body: `${pending.length} فعالیت برای امروز باقی مانده.` });
+        localStorage.setItem(key, '1');
+      }
+    }
+  }, [isHydrated, profile.notificationsEnabled, todayTasks]);
 
   const notifications = useMemo<HeaderNotification[]>(() => {
     const items: HeaderNotification[] = [];
@@ -503,6 +514,7 @@ export default function App() {
         onOpenMenu={() => setIsArcMenuOpen(true)}
         onOpenHome={() => goToTab('home')}
         onNotificationClick={(item) => goToTab(item.targetTab)}
+        onEnableNotifications={enableNotifications}
       />
 
       {/* هدر و نوار پایین شناورند؛ فاصله‌ی امن بالا و پایین برای محتوا لازم است */}

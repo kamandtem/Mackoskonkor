@@ -49,23 +49,13 @@ export const CountdownDial: React.FC<CountdownDialProps> = ({
   return (
     <div className={`countdown-flip-card-shell ${showJourney ? 'is-flipped' : ''}`}>
     <div className="countdown-flip-card countdown-flip-front" onClick={()=>setShowJourney(true)} role="button" tabIndex={0} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();setShowJourney(true)}}}>
-      {/* Subtle top indicator / tag */}
-      <div className="flex items-center justify-between mb-1 px-1">
-        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-          <Target className="w-3.5 h-3.5 text-indigo-500" />
-          {examName}
-        </span>
-        <button
-          onClick={(event)=>{event.stopPropagation();onOpenDatePicker()}}
-          className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-full transition-colors flex items-center gap-1"
-        >
-          <Calendar className="w-3 h-3" />
-          <span>تغییر تاریخ</span>
-        </button>
+      <div className="countdown-card-header" dir="rtl">
+        <span><Target /> {examName || 'کنکور سراسری'}</span>
+        <button type="button" onClick={(event)=>{event.stopPropagation();onOpenDatePicker()}}><Calendar /><b>تغییر تاریخ</b></button>
       </div>
 
       {/* Main Thermostat / Countdown Dial Container */}
-      <div className="relative flex flex-col items-center justify-center my-2">
+      <div className="countdown-card-body relative flex flex-col items-center justify-center">
         {/* SVG Circular Dial */}
         <div className="relative w-[260px] h-[260px] flex items-center justify-center">
           <svg
@@ -159,7 +149,7 @@ export const CountdownDial: React.FC<CountdownDialProps> = ({
         </div>
 
         {/* دو سنجه‌ی پایین — بر اساس هدف روزانه‌ی خودِ کاربر، نه عدد ثابت */}
-        <div className="w-full grid grid-cols-2 gap-4 mt-3 pt-2 border-t border-slate-100">
+        <div className="countdown-card-metrics w-full grid grid-cols-2 gap-4">
           <div className="text-center px-2">
             <div className="text-lg font-black text-slate-800">
               {toPersianDigits(Math.max(0, Math.ceil(daysRemaining / 7)))}{' '}
@@ -180,7 +170,7 @@ export const CountdownDial: React.FC<CountdownDialProps> = ({
         </div>
 
         {/* Tactile Central Action Button (Inspired by reference bottom power/fingerprint cutout) */}
-        <div className="mt-4 w-full flex justify-center">
+        <div className="countdown-card-action w-full flex justify-center">
           <button
             id="btn-quick-focus"
             onClick={(event)=>{event.stopPropagation();onStartFocus()}}

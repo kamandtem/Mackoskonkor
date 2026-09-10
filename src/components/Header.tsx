@@ -18,6 +18,7 @@ interface HeaderProps {
   /** با لمس آیکن یا نام برنامه به خانه برمی‌گردیم */
   onOpenHome?: () => void;
   onNotificationClick?: (item: HeaderNotification) => void;
+  onEnableNotifications?: () => void;
 }
 
 /**
@@ -30,6 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenMenu,
   onOpenHome,
   onNotificationClick,
+  onEnableNotifications,
 }) => {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -113,6 +115,8 @@ export const Header: React.FC<HeaderProps> = ({
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
+
+            {onEnableNotifications && typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && <button type="button" className="notification-enable" onClick={onEnableNotifications}><Bell/><span><b>اعلان‌های دستگاه</b><small>برای یادآوری برنامه‌ها فعالش کن</small></span></button>}
 
             {count === 0 ? (
               <div className="px-4 py-6 flex flex-col items-center gap-2 text-slate-400">

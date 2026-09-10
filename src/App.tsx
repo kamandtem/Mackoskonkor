@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AmbientSoundId,
   AppBackup,
@@ -59,9 +59,11 @@ import { HomeTimeline } from './components/HomeTimeline';
 import { ManualLogModal } from './components/ManualLogModal';
 import { Navbar } from './components/Navbar';
 import { OnboardingScreen } from './components/OnboardingScreen';
-import { PlannerView } from './components/PlannerView';
+import { CalendarView } from './components/CalendarView';
 import { ProfileModal } from './components/ProfileModal';
 import { ProgressView } from './components/ProgressView';
+import { ReportCardView } from './components/ReportCardView';
+import { QuickActionMenu } from './components/QuickActionMenu';
 import { SettingsModal } from './components/SettingsModal';
 import { SpeedDrillView } from './components/SpeedDrillView';
 import { StatCards } from './components/StatCards';
@@ -89,6 +91,10 @@ export default function App() {
   const [preselectedFocusSubject, setPreselectedFocusSubject] = useState<string | undefined>();
 
   const [isArcMenuOpen, setIsArcMenuOpen] = useState(false);
+  const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false);
+  // با دکمه‌ی + نوار پایین، فرم مربوطه در صفحه‌ی مقصد خودکار باز می‌شود
+  const [autoOpenAddTask, setAutoOpenAddTask] = useState(false);
+  const [autoOpenAddExam, setAutoOpenAddExam] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSoundsOpen, setIsSoundsOpen] = useState(false);
@@ -96,6 +102,8 @@ export default function App() {
   const [isBackupOpen, setIsBackupOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [isExitConfirmOpen, setIsExitConfirmOpen] = useState(false);
+  const lastBackPressRef = useRef(0);
 
   const [currentSound, setCurrentSound] = useState<AmbientSoundId>('none');
   const [theme, setTheme] = useState<ThemeMode>('light');
@@ -160,6 +168,38 @@ export default function App() {
   useEffect(() => {
     if (isHydrated) saveDrills(drills);
   }, [isHydrated, drills]);
+
+  // مدیریت برگشت: یک بار به خانه/لایه‌ی قبل، دوبار پشت‌سرهم درخواست خروج.
+  // با history کار می‌کنیم تا در WebView اندروید و مرورگر رفتار یکسان بماند.
+  useEffect(() => {
+    window.history.replaceState({ konkurRoot: true }, '', window.location.href);
+    const onBack = () => {
+      window.history.pushState({ konkurRoot: true }, '', window.location.href);
+      const now = Date.now();
+      const isDoubleBack = now - lastBackPressRef.current < 1500;
+      lastBackPressRef.current = now;
+
+      if (isQuickMenuOpen || isArcMenuOpen || isSettingsOpen || isProfileOpen || isSoundsOpen || isManualLogOpen || isBackupOpen || isAboutOpen) {
+        setIsQuickMenuOpen(false);
+        setIsArcMenuOpen(false);
+        setIsSettingsOpen(false);
+        setIsProfileOpen(false);
+        setIsSoundsOpen(false);
+        setIsManualLogOpen(false);
+        setIsBackupOpen(false);
+        setIsAboutOpen(false);
+        return;
+      }
+      if (isResetConfirmOpen || isExitConfirmOpen) return;
+      if (currentTab !== 'home') {
+        goToTab('home');
+        return;
+      }
+      if (isDoubleBack) setIsExitConfirmOpen(true);
+    };
+    window.addEventListener('popstate', onBack);
+    return () => window.removeEventListener('popstate', onBack);
+  }, [currentTab, isQuickMenuOpen, isArcMenuOpen, isSettingsOpen, isProfileOpen, isSoundsOpen, isManualLogOpen, isBackupOpen, isAboutOpen, isResetConfirmOpen, isExitConfirmOpen]);
 
   // صدای محیط را با بسته شدن برنامه رها کن
   useEffect(() => () => soundEngine.stop(), []);
@@ -244,10 +284,64 @@ export default function App() {
     [],
   );
 
-  const handleToggleTask = (taskId: string) =>
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, isCompleted: !t.isCompleted } : t)),
-    );
+  /* ---------------------------------------------------------------- */
+  /* تیک «انجام شد» = ثبت یک مطالعه‌ی موفق در آمار                       */
+  /* دقیقه‌هایی که پیش‌تر با تایمر یا پومودورو ثبت شده دوباره حساب نمی‌شود */
+  /* ---------------------------------------------------------------- */
+  const handleToggleTask = useCallback(
+    (taskId: string) => {
+      const task = tasks.find((t) => t.id === taskId);
+      if (!task) return;
+
+      if (!task.isCompleted) {
+        const remaining = Math.max(0, task.durationMinutes - (task.loggedMinutes ?? 0));
+        if (remaining > 0) {
+          recordSession(task.subjectId, task.subjectName, remaining, 'manual');
+        }
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === taskId
+              ? {
+                  ...t,
+                  isCompleted: true,
+                  loggedMinutes: Math.max(t.durationMinutes, t.loggedMinutes ?? 0),
+                }
+              : t,
+          ),
+        );
+        return;
+      }
+
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, isCompleted: false } : t)),
+      );
+    },
+    [tasks, recordSession],
+  );
+
+  /** ثبت دقیقه‌های تایمر یا پومودورو روی یک ردیف برنامه */
+  const handleLogTaskMinutes = useCallback(
+    (taskId: string, minutes: number, type: 'timer' | 'pomodoro') => {
+      if (minutes <= 0) return;
+      const task = tasks.find((t) => t.id === taskId);
+      if (!task) return;
+
+      recordSession(task.subjectId, task.subjectName, minutes, type);
+      setTasks((prev) =>
+        prev.map((t) => {
+          if (t.id !== taskId) return t;
+          const logged = (t.loggedMinutes ?? 0) + minutes;
+          return {
+            ...t,
+            loggedMinutes: logged,
+            // به مدتی که خودش تعیین کرده رسید؟ خودکار انجام‌شده می‌شود
+            isCompleted: t.isCompleted || logged >= t.durationMinutes,
+          };
+        }),
+      );
+    },
+    [tasks, recordSession],
+  );
 
   const handleAddTask = (data: Omit<TaskItem, 'id'>) =>
     setTasks((prev) => [...prev, { ...data, id: uid('task') }]);
@@ -409,13 +503,15 @@ export default function App() {
 
         {currentTab === 'planner' && (
           <div className="animate-in fade-in duration-200">
-            <PlannerView
+            <CalendarView
               tasks={tasks}
               subjects={subjects}
-              subjectStats={stats.subjects}
               onToggleTask={handleToggleTask}
               onAddTask={handleAddTask}
               onDeleteTask={handleDeleteTask}
+              onStartFocus={handleStartFocusSubject}
+              autoOpenAdd={autoOpenAddTask}
+              onAutoOpenAddHandled={() => setAutoOpenAddTask(false)}
             />
           </div>
         )}
@@ -433,6 +529,12 @@ export default function App() {
               onOpenSounds={() => setIsSoundsOpen(true)}
               currentSound={currentSound}
             />
+          </div>
+        )}
+
+        {currentTab === 'report' && (
+          <div className="animate-in fade-in duration-200">
+            <ReportCardView drills={drills} subjects={subjects} />
           </div>
         )}
 
@@ -454,6 +556,8 @@ export default function App() {
               exams={exams}
               onAddExam={handleAddExam}
               onDeleteExam={handleDeleteExam}
+              autoOpenAdd={autoOpenAddExam}
+              onAutoOpenAddHandled={() => setAutoOpenAddExam(false)}
             />
           </div>
         )}
@@ -473,8 +577,23 @@ export default function App() {
       <Navbar
         currentTab={currentTab}
         onSelectTab={goToTab}
-        profile={profile}
-        onOpenProfile={() => setIsProfileOpen(true)}
+        onQuickAdd={() => setIsQuickMenuOpen(true)}
+      />
+
+      {/* منوی دکمه‌ی + نوار پایین */}
+      <QuickActionMenu
+        isOpen={isQuickMenuOpen}
+        onClose={() => setIsQuickMenuOpen(false)}
+        onAddTask={() => {
+          goToTab('planner');
+          setAutoOpenAddTask(true);
+        }}
+        onStartDrill={() => goToTab('drill')}
+        onAddExam={() => {
+          goToTab('exams');
+          setAutoOpenAddExam(true);
+        }}
+        onStartFocus={() => goToTab('focus')}
       />
 
       {/* تنها منوی برنامه — با آیکن منو در هدر باز می‌شود */}
@@ -533,6 +652,20 @@ export default function App() {
       />
 
       <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
+
+      <ConfirmDialog
+        isOpen={isExitConfirmOpen}
+        title="می‌خواهی از برنامه خارج شوی؟"
+        message="برای خروج از برنامه تأیید کن."
+        confirmLabel="خروج"
+        cancelLabel="بمان"
+        onConfirm={() => {
+          setIsExitConfirmOpen(false);
+          window.close();
+          setTimeout(() => window.history.back(), 80);
+        }}
+        onCancel={() => setIsExitConfirmOpen(false)}
+      />
 
       <ConfirmDialog
         isOpen={isResetConfirmOpen}

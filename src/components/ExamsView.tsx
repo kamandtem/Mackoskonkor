@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Award, Calendar, Check, Plus, Trash2, X } from 'lucide-react';
 import { MockExam } from '../types/konkur';
 import { ExamWithCountdown, withCountdown } from '../utils/stats';
@@ -16,6 +16,9 @@ interface ExamsViewProps {
   exams: MockExam[];
   onAddExam: (exam: Omit<MockExam, 'id'>) => void;
   onDeleteExam: (id: string) => void;
+  /** با true شدن، فرم ثبت آزمون خودکار باز می‌شود (دکمه‌ی + نوار پایین) */
+  autoOpenAdd?: boolean;
+  onAutoOpenAddHandled?: () => void;
 }
 
 const IMPORTANCE: { id: MockExam['importance']; label: string; tone: string }[] = [
@@ -28,12 +31,25 @@ export const ExamsView: React.FC<ExamsViewProps> = ({
   exams,
   onAddExam,
   onDeleteExam,
+  autoOpenAdd = false,
+  onAutoOpenAddHandled,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [dateKey, setDateKey] = useState(() => dateToJalaliKey(addDays(startOfToday(), 14)));
   const [importance, setImportance] = useState<MockExam['importance']>('high');
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!autoOpenAdd) return;
+    setTitle('');
+    setDateKey(dateToJalaliKey(addDays(startOfToday(), 14)));
+    setImportance('high');
+    setError(null);
+    setIsModalOpen(true);
+    onAutoOpenAddHandled?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpenAdd]);
 
   const sorted = useMemo(() => withCountdown(exams), [exams]);
   const upcoming = sorted.filter((e) => !e.isPast);

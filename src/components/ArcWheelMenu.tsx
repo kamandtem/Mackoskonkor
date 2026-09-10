@@ -5,8 +5,6 @@ import {
   BarChart2,
   Calendar,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   Clock,
   Coffee,
   DatabaseBackup,
@@ -91,15 +89,6 @@ export const ARC_MENU_ITEMS: ArcMenuItem[] = [
     targetTab: 'planner',
   },
   {
-    id: 'power_study',
-    labelFa: 'مطالعه پرفشار',
-    icon: Zap,
-    color: '#f43f5e',
-    bgLight: '#fff1f2',
-    actionType: 'focus_subject',
-    subjectName: 'مطالعه مفهومی',
-  },
-  {
     id: 'drill',
     labelFa: 'تست‌زنی سرعتی',
     icon: CheckCircle2,
@@ -149,7 +138,7 @@ export const ARC_MENU_ITEMS: ArcMenuItem[] = [
     color: '#22c55e',
     bgLight: '#f0fdf4',
     actionType: 'tab',
-    targetTab: 'progress',
+    targetTab: 'report',
   },
   {
     id: 'sounds',
@@ -311,8 +300,89 @@ export const ArcWheelMenu: React.FC<ArcWheelMenuProps> = ({
   const [wheelDims, setWheelDims] = useState({ width: 375, height: 560 });
 
   const dragStartY = useRef(0);
+  const dragStartX = useRef(0);
   const dragStartOffset = useRef(0);
   const dragDistance = useRef(0);
+
+  /* ---------------------------------------------------------------- */
+  /* کشیدن به سمت راست برای بستن منو                                   */
+  /* حرکت عمودی گزینه‌ها دست‌نخورده می‌ماند: محور حرکت قفل می‌شود        */
+  /* ---------------------------------------------------------------- */
+  const SWIPE_CLOSE_PX = 96;
+  const [dragX, setDragX] = useState(0);
+  const [isSwipeDragging, setIsSwipeDragging] = useState(false);
+  const [isSwipingOut, setIsSwipingOut] = useState(false);
+  const swipeActive = useRef(false);
+  const swipeStart = useRef({ x: 0, y: 0 });
+  const gestureAxis = useRef<'none' | 'x' | 'y'>('none');
+  const dragXRef = useRef(0);
+  const closeTimer = useRef<number | null>(null);
+
+  const setDrag = (value: number) => {
+    dragXRef.current = value;
+    setDragX(value);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      setDrag(0);
+      setIsSwipeDragging(false);
+      setIsSwipingOut(false);
+      swipeActive.current = false;
+      gestureAxis.current = 'none';
+    }
+    return () => {
+      if (closeTimer.current !== null) {
+        window.clearTimeout(closeTimer.current);
+        closeTimer.current = null;
+      }
+    };
+  }, [isOpen]);
+
+  const handleSheetPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (isSwipingOut) return;
+    swipeActive.current = true;
+    gestureAxis.current = 'none';
+    swipeStart.current = { x: event.clientX, y: event.clientY };
+    setDrag(0);
+  };
+
+  const handleSheetPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!swipeActive.current) return;
+    const deltaX = event.clientX - swipeStart.current.x;
+    const deltaY = event.clientY - swipeStart.current.y;
+
+    if (gestureAxis.current === 'none' && (Math.abs(deltaX) > 12 || Math.abs(deltaY) > 12)) {
+      gestureAxis.current = Math.abs(deltaX) > Math.abs(deltaY) * 1.5 ? 'x' : 'y';
+      if (gestureAxis.current === 'x') {
+        setIsSwipeDragging(true);
+        // قوس سر جای خودش می‌ماند؛ این حرکت فقط بستن منو است
+        setScrollOffset(selectedIndex);
+      }
+    }
+
+    if (gestureAxis.current !== 'x') return;
+    setDrag(Math.max(0, deltaX));
+  };
+
+  const handleSheetPointerUp = () => {
+    if (!swipeActive.current) return;
+    swipeActive.current = false;
+    const shouldClose = gestureAxis.current === 'x' && dragXRef.current > SWIPE_CLOSE_PX;
+    gestureAxis.current = 'none';
+    setIsSwipeDragging(false);
+
+    if (shouldClose) {
+      setIsSwipingOut(true);
+      closeTimer.current = window.setTimeout(() => {
+        closeTimer.current = null;
+        onClose();
+      }, 190);
+      return;
+    }
+
+    setDrag(0);
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -353,6 +423,7 @@ export const ArcWheelMenu: React.FC<ArcWheelMenuProps> = ({
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     setIsDragging(true);
     dragStartY.current = event.clientY;
+    dragStartX.current = event.clientX;
     dragStartOffset.current = scrollOffset;
     dragDistance.current = 0;
     try {
@@ -365,7 +436,14 @@ export const ArcWheelMenu: React.FC<ArcWheelMenuProps> = ({
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging) return;
     const deltaY = event.clientY - dragStartY.current;
-    dragDistance.current = Math.max(dragDistance.current, Math.abs(deltaY));
+    const deltaX = event.clientX - dragStartX.current;
+    dragDistance.current = Math.max(
+      dragDistance.current,
+      Math.abs(deltaY),
+      Math.abs(deltaX),
+    );
+    // کشیدن افقی کار بستن منو است، نه چرخاندن قوس
+    if (gestureAxis.current === 'x') return;
     const newOffset = dragStartOffset.current + -deltaY / Math.max(28, spacing);
     setScrollOffset(Math.max(-0.4, Math.min(itemsCount - 0.6, newOffset)));
   };
@@ -388,9 +466,6 @@ export const ArcWheelMenu: React.FC<ArcWheelMenuProps> = ({
     const delta = event.deltaY > 0 ? 1 : -1;
     setSelectedIndex((prev) => Math.max(0, Math.min(itemsCount - 1, prev + delta)));
   };
-
-  const step = (delta: number) =>
-    setSelectedIndex((prev) => Math.max(0, Math.min(itemsCount - 1, prev + delta)));
 
   const handleExecuteAction = (item: ArcMenuItem) => {
     switch (item.actionType) {
@@ -439,22 +514,24 @@ export const ArcWheelMenu: React.FC<ArcWheelMenuProps> = ({
     >
       <div
         onClick={(event) => event.stopPropagation()}
+        onPointerDown={handleSheetPointerDown}
+        onPointerMove={handleSheetPointerMove}
+        onPointerUp={handleSheetPointerUp}
+        onPointerCancel={handleSheetPointerUp}
         className="w-full max-w-md h-full bg-[#f4f5f8] relative overflow-hidden flex flex-col select-none touch-none shadow-2xl"
+        style={{
+          transform: isSwipingOut ? 'translateX(110%)' : `translateX(${dragX}px)`,
+          opacity: isSwipingOut ? 0 : 1,
+          transition: isSwipeDragging
+            ? 'none'
+            : 'transform 200ms ease-out, opacity 200ms ease-out',
+        }}
       >
-        {/* ریل سمت چپ: بستن، بالا/پایین، تنظیمات، تم، شبکه‌های اجتماعی */}
+        {/* ریل سمت چپ: بستن، تنظیمات، تم */}
         <div className="absolute left-3 safe-sheet-top z-30 flex flex-col gap-2">
           <div className="bg-white rounded-3xl p-1.5 border border-slate-100 shadow-[0_4px_14px_rgba(15,23,42,0.07)]">
             <RailButton label="بستن منو" onClick={onClose}>
               <X className="w-4 h-4" />
-            </RailButton>
-          </div>
-
-          <div className="bg-white rounded-3xl p-1.5 border border-slate-100 shadow-[0_4px_14px_rgba(15,23,42,0.07)] flex flex-col gap-1">
-            <RailButton label="گزینه‌ی قبلی" onClick={() => step(-1)}>
-              <ChevronUp className="w-4 h-4" />
-            </RailButton>
-            <RailButton label="گزینه‌ی بعدی" onClick={() => step(1)}>
-              <ChevronDown className="w-4 h-4" />
             </RailButton>
           </div>
 
@@ -475,29 +552,6 @@ export const ArcWheelMenu: React.FC<ArcWheelMenuProps> = ({
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </RailButton>
-          </div>
-
-          <div className="bg-white rounded-3xl p-1.5 border border-slate-100 shadow-[0_4px_14px_rgba(15,23,42,0.07)] flex flex-col gap-1">
-            <a
-              href={telegramUrl}
-              target="_blank"
-              rel="noreferrer"
-              title="کانال تلگرام"
-              aria-label="کانال تلگرام"
-              className="w-9 h-9 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center active:scale-90 transition-all"
-            >
-              <Send className="w-4 h-4" />
-            </a>
-            <a
-              href={instagramUrl}
-              target="_blank"
-              rel="noreferrer"
-              title="پیج اینستاگرام"
-              aria-label="پیج اینستاگرام"
-              className="w-9 h-9 rounded-2xl bg-pink-50 text-pink-500 flex items-center justify-center active:scale-90 transition-all"
-            >
-              <Instagram className="w-4 h-4" />
-            </a>
           </div>
         </div>
 
@@ -607,25 +661,51 @@ export const ArcWheelMenu: React.FC<ArcWheelMenuProps> = ({
           </div>
         </div>
 
-        {/* پایین منو: شمارش معکوس روی تصویر زمین + دکمه‌ی «بزن بریم» */}
+        {/* پایین منو: شمارش معکوس روی تصویر زمین + دکمه‌ی «بزن بریم» + شبکه‌های اجتماعی */}
         <div className="relative z-20 px-4 pt-2 safe-sheet-bottom">
-          <div className="bg-white rounded-[26px] p-2.5 border border-slate-100 shadow-[0_10px_30px_rgba(15,23,42,0.08)] flex items-center gap-2.5">
-            <EarthCountdown
-              targetIso={profile.examTargetDate}
-              onPress={() => {
-                onOpenSettings();
-                onClose();
-              }}
-            />
+          <div className="bg-white rounded-[26px] p-2.5 border border-slate-100 shadow-[0_10px_30px_rgba(15,23,42,0.08)] flex flex-col gap-2">
+            <div className="flex items-center gap-2.5">
+              <EarthCountdown
+                targetIso={profile.examTargetDate}
+                onPress={() => {
+                  onOpenSettings();
+                  onClose();
+                }}
+              />
 
-            <button
-              type="button"
-              onClick={() => handleExecuteAction(activeItem)}
-              className="px-4 h-[64px] rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-900 font-black text-[13px] flex items-center gap-1.5 shadow-[0_8px_20px_rgba(251,191,36,0.45)] active:scale-95 transition-all shrink-0"
-            >
-              <span>بزن بریم</span>
-              <ArrowLeft className="w-4 h-4 stroke-[2.6]" />
-            </button>
+              <button
+                type="button"
+                onClick={() => handleExecuteAction(activeItem)}
+                className="px-4 h-[64px] rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-900 font-black text-[13px] flex items-center gap-1.5 shadow-[0_8px_20px_rgba(251,191,36,0.45)] active:scale-95 transition-all shrink-0"
+              >
+                <span>بزن بریم</span>
+                <ArrowLeft className="w-4 h-4 stroke-[2.6]" />
+              </button>
+            </div>
+
+            {/* زیر شمارش معکوس: تلگرام و اینستاگرام — فلت و خاکستری */}
+            <div className="flex items-center justify-center gap-2">
+              <a
+                href={telegramUrl}
+                target="_blank"
+                rel="noreferrer"
+                title="کانال تلگرام"
+                aria-label="کانال تلگرام"
+                className="w-10 h-9 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center active:scale-90 transition-all"
+              >
+                <Send className="w-[17px] h-[17px]" />
+              </a>
+              <a
+                href={instagramUrl}
+                target="_blank"
+                rel="noreferrer"
+                title="پیج اینستاگرام"
+                aria-label="پیج اینستاگرام"
+                className="w-10 h-9 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center active:scale-90 transition-all"
+              >
+                <Instagram className="w-[17px] h-[17px]" />
+              </a>
+            </div>
           </div>
         </div>
       </div>

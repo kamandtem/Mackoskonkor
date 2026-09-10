@@ -211,11 +211,19 @@ function sanitizeTasks(raw: unknown): TaskItem[] {
         id: str(t.id) || `task-${Date.now()}-${i}`,
         subjectId: str(t.subjectId),
         subjectName: str(t.subjectName).trim().slice(0, 40) || 'مطالعه آزاد',
+        activityType: (['study', 'class', 'other'].includes(str(t.activityType)) ? str(t.activityType) : 'study') as TaskItem['activityType'],
+        chapter: str(t.chapter).trim().slice(0, 100) || undefined,
         dateStr,
         startTime: normalizeTime(str(t.startTime)),
         durationMinutes: num(t.durationMinutes, 45, 5, 600),
         isCompleted: t.isCompleted === true,
         notes: str(t.notes).slice(0, 200) || undefined,
+        resource: str(t.resource).trim().slice(0, 100) || undefined,
+        reportType: str(t.reportType).trim().slice(0, 60) || undefined,
+        questionType: (['test', 'written'].includes(str(t.questionType)) ? str(t.questionType) : undefined) as TaskItem['questionType'],
+        questionCount: t.questionCount == null ? undefined : num(t.questionCount, 0, 0, 1000),
+        color: /^#[0-9a-fA-F]{6}$/.test(str(t.color)) ? str(t.color) : undefined,
+        loggedMinutes: num(t.loggedMinutes, 0, 0, 1440),
       };
     });
 }

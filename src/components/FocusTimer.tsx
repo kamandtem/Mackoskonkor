@@ -204,16 +204,16 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   }
 
   return (
-    <div className="flex flex-col items-center px-4 py-2 max-w-md mx-auto w-full">
+    <div className="focus-page" dir="rtl">
       {/* Mode Switch (تمرکز / استراحت) */}
-      <div className="w-full soft-card p-1.5 flex items-center justify-between mb-4">
+      <div className="focus-mode-switch">
         <button
           onClick={() => {
             setIsActive(false);
             setMode('work');
             setSecondsRemaining(totalWorkMinutes * 60);
           }}
-          className={`flex-1 py-2 rounded-2xl text-xs font-bold transition-all ${
+          className={`focus-mode-btn ${
             mode === 'work'
               ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
               : 'text-slate-500 hover:text-slate-700'
@@ -227,7 +227,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
             setMode('break');
             setSecondsRemaining(totalBreakMinutes * 60);
           }}
-          className={`flex-1 py-2 rounded-2xl text-xs font-bold transition-all ${
+          className={`focus-mode-btn ${
             mode === 'break'
               ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-200'
               : 'text-slate-500 hover:text-slate-700'
@@ -238,12 +238,12 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
       </div>
 
       {/* Preset Buttons (25/5, 50/10, 90/20) */}
-      <div className="flex items-center gap-2 mb-4 w-full justify-center">
+      <div className="focus-presets">
         {PRESETS.map((p, idx) => (
           <button
             key={idx}
             onClick={() => applyPreset(idx)}
-            className={`px-4 py-1.5 rounded-2xl text-xs font-bold transition-all ${
+            className={`focus-preset ${
               selectedPresetIndex === idx
                 ? 'bg-white text-indigo-700 shadow-sm border border-indigo-200'
                 : 'bg-slate-100/80 text-slate-500 hover:bg-slate-200/80'
@@ -255,17 +255,16 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
       </div>
 
       {/* Subject Picker Dropdown / Chip */}
-      <div className="w-full mb-3">
-        <div className="soft-card p-3 flex items-center justify-between">
+      <div className="focus-subject">
+        <div className="focus-subject-row">
           <div className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-indigo-500" />
-            <span className="text-xs font-bold text-slate-600">درس هدف:</span>
+            <span className="focus-subject-icon"><BookOpen /></span><span className="focus-subject-label">درس هدف</span>
           </div>
           <select
             value={selectedSubjectId}
             onChange={(e) => setSelectedSubjectId(e.target.value)}
             disabled={isActive}
-            className="bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            className="focus-subject-select"
           >
             {subjects.map((s) => (
               <option key={s.id} value={s.id}>
@@ -277,7 +276,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
       </div>
 
       {/* Giant Circular Timer Dial */}
-      <div className="relative w-[270px] h-[270px] my-2 flex items-center justify-center">
+      <div className="focus-dial-wrap">
         <svg width={dialSize} height={dialSize} className="transform -rotate-90">
           <defs>
             <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -332,12 +331,12 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
       </div>
 
       {/* Control Buttons (Play/Pause, Reset, Sounds) */}
-      <div className="flex items-center gap-4 mt-5">
+      <div className="focus-controls">
         {/* Reset Button */}
         <button
           onClick={resetTimer}
           title="بازنشانی تایمر"
-          className="w-12 h-12 rounded-2xl bg-white text-slate-500 soft-card flex items-center justify-center hover:bg-slate-50 active:scale-95 transition-all"
+          className="focus-icon-btn"
         >
           <RotateCcw className="w-5 h-5" />
         </button>
@@ -345,7 +344,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
         {/* Main Play / Pause Button */}
         <button
           onClick={toggleTimer}
-          className={`h-14 px-8 rounded-3xl font-black text-base flex items-center gap-3 text-white soft-button hover:brightness-105 active:scale-95 transition-all ${
+          className={`focus-main-btn ${
             isActive
               ? 'bg-amber-500 shadow-amber-200'
               : mode === 'work'
@@ -370,7 +369,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
         <button
           onClick={onOpenSounds}
           title="صدای پس‌زمینه تمرکز"
-          className={`w-12 h-12 rounded-2xl flex items-center justify-center soft-card active:scale-95 transition-all ${
+          className={`focus-icon-btn ${
             currentSound !== 'none'
               ? 'bg-indigo-50 border border-indigo-200 text-indigo-600 animate-pulse'
               : 'bg-white text-slate-500 hover:bg-slate-50'
@@ -382,7 +381,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
 
       {/* Current Ambient Sound Indicator */}
       {currentSound !== 'none' && (
-        <div className="mt-4 flex items-center gap-2 bg-indigo-50/80 border border-indigo-100 text-indigo-700 px-3.5 py-1.5 rounded-full text-xs font-bold shadow-2xs animate-fadeIn">
+        <div className="focus-sound-pill">
           <Volume2 className="w-3.5 h-3.5" />
           <span>صدای پس‌زمینه در حال پخش است</span>
           <button

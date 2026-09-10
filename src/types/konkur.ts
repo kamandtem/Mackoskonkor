@@ -31,6 +31,8 @@ export interface TaskItem {
   id: string;
   subjectId: string;
   subjectName: string;
+  activityType?: 'study' | 'class' | 'other';
+  chapter?: string;
   /** کلید تاریخ شمسی با رقم لاتین: 1405/08/15 */
   dateStr: string;
   /** ساعت ۲۴ ساعته با رقم لاتین: 09:00 */
@@ -38,6 +40,13 @@ export interface TaskItem {
   durationMinutes: number;
   isCompleted: boolean;
   notes?: string;
+  resource?: string;
+  reportType?: string;
+  questionType?: 'test' | 'written';
+  questionCount?: number;
+  color?: string;
+  /** دقیقه‌های مطالعه‌ی همین ردیف که تا حالا در آمار ثبت شده است */
+  loggedMinutes?: number;
 }
 
 export interface StudySession {
@@ -80,7 +89,7 @@ export interface TestDrill {
   timestamp: number;
 }
 
-export type NavTab = 'home' | 'planner' | 'focus' | 'progress' | 'exams' | 'drill';
+export type NavTab = 'home' | 'planner' | 'focus' | 'progress' | 'report' | 'exams' | 'drill';
 
 export type AmbientSoundId =
   | 'none'

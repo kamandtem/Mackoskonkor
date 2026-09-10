@@ -32,19 +32,13 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-<<<<<<< HEAD
-        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
-=======
         run: npm install
->>>>>>> f820e18ce48e3d0b61408d9575143fd01a7936ea
 
       - name: Build Web Application
-        run: |
-          npm run build
+        run: npm run build
 
       - name: Sync Capacitor Android
-        run: |
-          npx cap sync android
+        run: npx cap sync android
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -54,8 +48,7 @@ jobs:
           cache: 'gradle'
 
       - name: Grant Execute Permission for Gradlew
-        run: |
-          chmod +x android/gradlew
+        run: chmod +x android/gradlew
 
       - name: Build Debug APK
         if: ${{ github.event.inputs.build_type != 'release' }}

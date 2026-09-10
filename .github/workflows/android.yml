@@ -32,7 +32,11 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
+<<<<<<< HEAD
         run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+=======
+        run: npm install
+>>>>>>> f820e18ce48e3d0b61408d9575143fd01a7936ea
 
       - name: Build Web Application
         run: |

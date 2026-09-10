@@ -18,6 +18,10 @@ interface TaskPomodoroPanelProps {
 }
 
 type Phase = 'work' | 'break' | 'done';
+type PersistedTaskTimer = { phase: Phase; blockSeconds: number; secondsLeft: number; isRunning: boolean; loggedMinutes: number; cycle: number; target: number; endTime: number | null };
+const taskTimerKey = (taskId: string) => `konkur_task_pomodoro_v1_${taskId}`;
+const readTaskTimer = (taskId: string): PersistedTaskTimer | null => { try { const raw = localStorage.getItem(taskTimerKey(taskId)); return raw ? JSON.parse(raw) as PersistedTaskTimer : null; } catch { return null; } };
+const saveTaskTimer = (taskId: string, value: PersistedTaskTimer | null) => { try { if (value) localStorage.setItem(taskTimerKey(taskId), JSON.stringify(value)); else localStorage.removeItem(taskTimerKey(taskId)); } catch {} };
 
 const pad = (value: number) => toPersianDigits(String(value).padStart(2, '0'));
 
@@ -44,6 +48,7 @@ export const TaskPomodoroPanel: React.FC<TaskPomodoroPanelProps> = ({
   const [cycle, setCycle] = useState(1);
 
   const endRef = useRef<number | null>(null);
+  const restoreRef = useRef(false);
   const loggedRef = useRef(0);
   const targetRef = useRef(0);
 
@@ -59,6 +64,20 @@ export const TaskPomodoroPanel: React.FC<TaskPomodoroPanelProps> = ({
     }
     const target = Math.max(1, remainingMinutes);
     const first = Math.min(work, target);
+    const saved = task ? readTaskTimer(task.id) : null;
+    if (saved && saved.phase !== 'done') {
+      restoreRef.current = true;
+      targetRef.current = saved.target;
+      loggedRef.current = saved.loggedMinutes;
+      setLoggedMinutes(saved.loggedMinutes);
+      setCycle(saved.cycle);
+      setPhase(saved.phase);
+      setBlockSeconds(saved.blockSeconds);
+      setSecondsLeft(saved.endTime && saved.isRunning ? Math.max(0, Math.round((saved.endTime - Date.now()) / 1000)) : saved.secondsLeft);
+      setIsRunning(saved.isRunning);
+      endRef.current = saved.endTime;
+      return;
+    }
     targetRef.current = target;
     loggedRef.current = 0;
     setLoggedMinutes(0);
@@ -70,6 +89,11 @@ export const TaskPomodoroPanel: React.FC<TaskPomodoroPanelProps> = ({
     endRef.current = Date.now() + first * 60 * 1000;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, task?.id]);
+
+  useEffect(() => {
+    if (!task || !isOpen || restoreRef.current) { restoreRef.current = false; return; }
+    saveTaskTimer(task.id, { phase, blockSeconds, secondsLeft, isRunning, loggedMinutes, cycle, target: targetRef.current, endTime: endRef.current });
+  }, [task, isOpen, phase, blockSeconds, secondsLeft, isRunning, loggedMinutes, cycle]);
 
   const celebrate = () => {
     try {

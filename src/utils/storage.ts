@@ -2,6 +2,7 @@ import {
   AppBackup,
   MajorType,
   MockExam,
+  NoteItem,
   StudySession,
   SubjectItem,
   TaskItem,
@@ -11,7 +12,7 @@ import {
 import { normalizeJalaliKey, normalizeTime, todayJalaliKey, toLocalIso } from './jalali';
 
 export const SCHEMA_VERSION = 2;
-export const APP_VERSION = '2.0.0';
+export const APP_VERSION = '2.6.0';
 
 const STORAGE_KEYS = {
   PROFILE: 'konkur_profile_v2',
@@ -20,6 +21,7 @@ const STORAGE_KEYS = {
   SESSIONS: 'konkur_sessions_v2',
   EXAMS: 'konkur_exams_v2',
   DRILLS: 'konkur_drills_v2',
+  NOTES: 'konkur_notes_v1',
 } as const;
 
 /** کلیدهای نسخه‌ی قبلی که داده‌ی نمونه در آن‌ها ریخته می‌شد */
@@ -228,6 +230,18 @@ function sanitizeTasks(raw: unknown): TaskItem[] {
     });
 }
 
+function sanitizeNotes(raw: unknown): NoteItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(isObj).map((n, i) => ({
+    id: str(n.id) || `note-${Date.now()}-${i}`,
+    title: str(n.title).trim().slice(0, 100) || 'یادداشت بدون عنوان',
+    content: str(n.content).slice(0, 20000),
+    color: ['peach','lavender','lilac','butter','sky','rose'].includes(str(n.color)) ? str(n.color) : 'peach',
+    createdAt: str(n.createdAt) || new Date().toISOString(),
+    updatedAt: str(n.updatedAt) || str(n.createdAt) || new Date().toISOString(),
+  }));
+}
+
 function sanitizeSessions(raw: unknown): StudySession[] {
   if (!Array.isArray(raw)) return [];
   const allowed = ['pomodoro', 'timer', 'manual', 'drill', 'virtual', 'physical'];
@@ -329,6 +343,10 @@ export function loadDrills(): TestDrill[] {
   return sanitizeDrills(readJson(STORAGE_KEYS.DRILLS));
 }
 
+export function loadNotes(): NoteItem[] {
+  return sanitizeNotes(readJson(STORAGE_KEYS.NOTES));
+}
+
 /* ------------------------------------------------------------------ */
 /* نوشتن                                                               */
 /* ------------------------------------------------------------------ */
@@ -339,6 +357,7 @@ export const saveTasks = (v: TaskItem[]) => writeJson(STORAGE_KEYS.TASKS, v);
 export const saveSessions = (v: StudySession[]) => writeJson(STORAGE_KEYS.SESSIONS, v);
 export const saveExams = (v: MockExam[]) => writeJson(STORAGE_KEYS.EXAMS, v);
 export const saveDrills = (v: TestDrill[]) => writeJson(STORAGE_KEYS.DRILLS, v);
+export const saveNotes = (v: NoteItem[]) => writeJson(STORAGE_KEYS.NOTES, v);
 
 /** همه‌ی داده‌های کاربر را پاک می‌کند و برنامه به حالت روز اول برمی‌گردد */
 export function clearAllData(): void {
@@ -362,6 +381,7 @@ export function buildBackup(data: {
   sessions: StudySession[];
   exams: MockExam[];
   drills: TestDrill[];
+  notes: NoteItem[];
 }): AppBackup {
   return {
     app: 'konkur-man',
@@ -403,5 +423,6 @@ export function parseBackup(rawText: string): ParsedBackup {
     sessions: sanitizeSessions(parsed.sessions),
     exams: sanitizeExams(parsed.exams),
     drills: sanitizeDrills(parsed.drills),
+    notes: sanitizeNotes(parsed.notes),
   };
 }

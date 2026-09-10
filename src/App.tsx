@@ -7,6 +7,7 @@ import {
   StudySession,
   SubjectItem,
   TaskItem,
+  NoteItem,
   TestDrill,
   UserProfile,
 } from './types/konkur';
@@ -29,6 +30,8 @@ import {
   saveSessions,
   saveSubjects,
   saveTasks,
+  loadNotes,
+  saveNotes,
 } from './utils/storage';
 import {
   calculateDaysRemaining,
@@ -69,6 +72,11 @@ import { SpeedDrillView } from './components/SpeedDrillView';
 import { StatCards } from './components/StatCards';
 import { UpcomingExamCard } from './components/UpcomingExamCard';
 import { StudyHallView } from './features/studyHall/StudyHallView';
+import { StudyScheduleView } from './components/StudyScheduleView';
+import { AdvisorsView } from './components/AdvisorsView';
+import { NotesView } from './components/NotesView';
+import { FlashcardsView } from './components/FlashcardsView';
+import { HomeUpdates, MotivationStrip } from './components/HomeUpdates';
 
 const uid = (prefix: string) =>
   `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
@@ -87,6 +95,7 @@ export default function App() {
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [exams, setExams] = useState<MockExam[]>([]);
   const [drills, setDrills] = useState<TestDrill[]>([]);
+  const [notes, setNotes] = useState<NoteItem[]>([]);
 
   const [currentTab, setCurrentTab] = useState<NavTab>('home');
   const [preselectedFocusSubject, setPreselectedFocusSubject] = useState<string | undefined>();
@@ -96,6 +105,7 @@ export default function App() {
   // با دکمه‌ی + نوار پایین، فرم مربوطه در صفحه‌ی مقصد خودکار باز می‌شود
   const [autoOpenAddTask, setAutoOpenAddTask] = useState(false);
   const [autoOpenAddExam, setAutoOpenAddExam] = useState(false);
+  const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSoundsOpen, setIsSoundsOpen] = useState(false);
@@ -140,6 +150,7 @@ export default function App() {
     setSessions(loadSessions());
     setExams(loadExams());
     setDrills(loadDrills());
+    setNotes(loadNotes());
     setIsHydrated(true);
   }, []);
 
@@ -169,6 +180,10 @@ export default function App() {
   useEffect(() => {
     if (isHydrated) saveDrills(drills);
   }, [isHydrated, drills]);
+
+  useEffect(() => {
+    if (isHydrated) saveNotes(notes);
+  }, [isHydrated, notes]);
 
   // مدیریت برگشت: یک بار به خانه/لایه‌ی قبل، دوبار پشت‌سرهم درخواست خروج.
   // با history کار می‌کنیم تا در WebView اندروید و مرورگر رفتار یکسان بماند.
@@ -347,11 +362,21 @@ export default function App() {
   const handleAddTask = (data: Omit<TaskItem, 'id'>) =>
     setTasks((prev) => [...prev, { ...data, id: uid('task') }]);
 
+  const handleAddTasks = (items: Omit<TaskItem, 'id'>[]) =>
+    setTasks((prev) => [...prev, ...items.map((item) => ({ ...item, id: uid('task') }))]);
+
   const handleDeleteTask = (taskId: string) =>
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
 
   const handleAddExam = (data: Omit<MockExam, 'id'>) =>
     setExams((prev) => [...prev, { ...data, id: uid('exam') }]);
+
+  const handleAddNote = (note: Omit<NoteItem, 'id'|'createdAt'|'updatedAt'>) => {
+    const now = new Date().toISOString();
+    setNotes(prev => [{ ...note, id: uid('note'), createdAt: now, updatedAt: now }, ...prev]);
+  };
+  const handleUpdateNote = (note: NoteItem) => setNotes(prev => prev.map(item => item.id === note.id ? note : item));
+  const handleDeleteNote = (id: string) => setNotes(prev => prev.filter(note => note.id !== id));
 
   const handleDeleteExam = (examId: string) =>
     setExams((prev) => prev.filter((e) => e.id !== examId));
@@ -404,6 +429,7 @@ export default function App() {
     setSessions(data.sessions);
     setExams(data.exams);
     setDrills(data.drills);
+    setNotes(data.notes ?? []);
     setIsBackupOpen(false);
     setCurrentTab('home');
   };
@@ -417,6 +443,7 @@ export default function App() {
     setSessions([]);
     setExams([]);
     setDrills([]);
+    setNotes([]);
     setCurrentSound('none');
     setCurrentTab('home');
     setIsResetConfirmOpen(false);
@@ -433,7 +460,7 @@ export default function App() {
   };
 
   const makeBackup = (): AppBackup =>
-    buildBackup({ profile, subjects, tasks, sessions, exams, drills });
+    buildBackup({ profile, subjects, tasks, sessions, exams, drills, notes });
 
   /* ---------------------------------------------------------------- */
   /* دو دروازه‌ی اول: بارگذاری، سپس ورود اطلاعات کاربر                   */
@@ -470,6 +497,7 @@ export default function App() {
       <main className="flex-1 safe-main overflow-y-auto no-scrollbar">
         {currentTab === 'home' && (
           <div className="flex flex-col animate-in fade-in duration-200">
+            <MotivationStrip />
             <CountdownDial
               daysRemaining={daysRemaining ?? 0}
               progressPercent={progressPercent}
@@ -478,6 +506,8 @@ export default function App() {
               onStartFocus={() => goToTab('focus')}
               onOpenDatePicker={() => setIsSettingsOpen(true)}
             />
+
+            <HomeUpdates />
 
             <StatCards
               todayStudyMinutes={stats.todayMinutes}
@@ -502,15 +532,23 @@ export default function App() {
           </div>
         )}
 
+        {currentTab === 'flashcards' && (
+          <div className="animate-in fade-in duration-200">
+            <FlashcardsView onClose={() => goToTab('home')} />
+          </div>
+        )}
+
         {currentTab === 'planner' && (
           <div className="animate-in fade-in duration-200">
             <CalendarView
               tasks={tasks}
               subjects={subjects}
+              major={profile.major}
               onToggleTask={handleToggleTask}
               onAddTask={handleAddTask}
               onDeleteTask={handleDeleteTask}
               onStartFocus={handleStartFocusSubject}
+              onOpenSchedules={() => goToTab('schedule')}
               autoOpenAdd={autoOpenAddTask}
               onAutoOpenAddHandled={() => setAutoOpenAddTask(false)}
             />
@@ -530,6 +568,23 @@ export default function App() {
               onOpenSounds={() => setIsSoundsOpen(true)}
               currentSound={currentSound}
             />
+          </div>
+        )}
+
+        {currentTab === 'schedule' && (
+          <div className="animate-in fade-in duration-200">
+            <StudyScheduleView
+              subjects={subjects}
+              onAddTasks={handleAddTasks}
+              onOpenCalendar={() => goToTab('planner')}
+              onClose={() => goToTab('home')}
+            />
+          </div>
+        )}
+
+        {currentTab === 'advisors' && (
+          <div className="animate-in fade-in duration-200">
+            <AdvisorsView onClose={() => goToTab('home')} />
           </div>
         )}
 
@@ -559,6 +614,7 @@ export default function App() {
               stats={stats}
               drillStats={drillStats}
               drills={drills}
+              sessions={sessions}
               profile={profile}
               onStartFocus={() => goToTab('focus')}
             />
@@ -574,6 +630,12 @@ export default function App() {
               autoOpenAdd={autoOpenAddExam}
               onAutoOpenAddHandled={() => setAutoOpenAddExam(false)}
             />
+          </div>
+        )}
+
+        {isNotesOpen && (
+          <div className="animate-in fade-in duration-200">
+            <NotesView notes={notes} onAdd={handleAddNote} onUpdate={handleUpdateNote} onDelete={handleDeleteNote} onClose={() => setIsNotesOpen(false)} />
           </div>
         )}
 
@@ -609,6 +671,7 @@ export default function App() {
           setAutoOpenAddExam(true);
         }}
         onStartFocus={() => goToTab('focus')}
+        onOpenNotes={() => setIsNotesOpen(true)}
       />
 
       {/* تنها منوی برنامه — با آیکن منو در هدر باز می‌شود */}

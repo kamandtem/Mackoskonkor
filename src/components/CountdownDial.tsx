@@ -1,5 +1,5 @@
-import React from 'react';
-import { Play, Calendar, Target, Award } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft as ArrowLeftIcon, Play, Calendar, Target, Award, Sparkles as SparklesIcon } from 'lucide-react';
 import { toPersianDigits } from '../utils/jalali';
 
 interface CountdownDialProps {
@@ -21,6 +21,7 @@ export const CountdownDial: React.FC<CountdownDialProps> = ({
   onOpenDatePicker,
 }) => {
   // Circular arc calculation for SVG
+  const [showJourney, setShowJourney] = useState(false);
   const size = 260;
   const strokeWidth = 14;
   const radius = (size - strokeWidth) / 2;
@@ -46,7 +47,8 @@ export const CountdownDial: React.FC<CountdownDialProps> = ({
   });
 
   return (
-    <div className="mx-4 my-2 soft-card p-5 relative overflow-hidden">
+    <div className={`countdown-flip-card-shell ${showJourney ? 'is-flipped' : ''}`} onClick={()=>setShowJourney(v=>!v)}>
+    <div className="countdown-flip-card countdown-flip-front" onClick={event=>event.stopPropagation()}>
       {/* Subtle top indicator / tag */}
       <div className="flex items-center justify-between mb-1 px-1">
         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
@@ -192,5 +194,21 @@ export const CountdownDial: React.FC<CountdownDialProps> = ({
         </div>
       </div>
     </div>
+
+    <div className="countdown-flip-card countdown-flip-back" dir="rtl">
+      <div className="journey-map-bg" aria-hidden="true"><span className="journey-glow"/></div>
+      <div className="journey-back-head"><span><SparklesIcon/> مسیر پیشرفت تو</span><button onClick={()=>setShowJourney(false)}><ArrowLeftIcon/></button></div>
+      <div className="journey-copy"><small>هر روزی که می‌گذرد، یک قدم بالاتر</small><strong>{toPersianDigits(Math.round(Math.min(100, Math.max(0, progressPercent))))}٪ از مسیر طی شده</strong><p>موقعیت امروزت روی جاده‌ی قله</p></div>
+      <JourneyPath progress={progressPercent} daysRemaining={daysRemaining}/>
+      <button className="journey-return" onClick={()=>setShowJourney(false)}>بازگشت به شمارشگر</button>
+    </div>
+    </div>
   );
+};
+
+
+const JourneyPath:React.FC<{progress:number;daysRemaining:number}>=({progress,daysRemaining})=>{
+ const points=[{x:16,y:88,label:'شروع'},{x:37,y:68,label:'پایه'},{x:62,y:48,label:'پیشروی'},{x:78,y:25,label:'تمرکز'},{x:88,y:8,label:'قله'}];
+ const clamped=Math.max(0,Math.min(100,progress)); const current=clamped/100*(points.length-1); const idx=Math.min(points.length-1,Math.floor(current)); const next=points[Math.min(points.length-1,idx+1)]; const here=points[idx]; const t=current-idx; const x=idx===points.length-1?here.x:here.x+(next.x-here.x)*t; const y=idx===points.length-1?here.y:here.y+(next.y-here.y)*t;
+ return <div className="journey-path"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><defs><linearGradient id="journeyFill" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stopColor="oklch(69% .16 155)"/><stop offset="1" stopColor="oklch(60% .2 285)"/></linearGradient></defs><path d="M 9 93 C 17 83, 26 84, 32 72 S 55 62, 58 49 S 72 40, 75 27 S 86 17, 91 7" fill="none" stroke="oklch(99% .01 285 / .4)" strokeWidth="5"/><path d="M 9 93 C 17 83, 26 84, 32 72 S 55 62, 58 49 S 72 40, 75 27 S 86 17, 91 7" fill="none" stroke="url(#journeyFill)" strokeWidth="1.7" strokeDasharray="140" strokeDashoffset={140-(140*clamped/100)} /></svg>{points.map((point,i)=><span key={point.label} className={`journey-point ${i<=idx?'passed':''}`} style={{left:`${point.x}%`,top:`${point.y}%`}}><i>{i===points.length-1?'◆':i+1}</i><small>{point.label}</small></span>)}<span className="journey-user" style={{left:`${x}%`,top:`${y}%`}}><span>تو</span></span><div className="journey-day-chip">{daysRemaining>0?`${toPersianDigits(daysRemaining)} روز تا قله`:'امروز روز قله است'}</div></div>;
 };

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Award, CalendarPlus, Timer, X, Zap } from 'lucide-react';
+import { Award, CalendarPlus, FileText, Timer, X, Zap } from 'lucide-react';
 
 interface QuickActionMenuProps {
   isOpen: boolean;
@@ -12,6 +12,8 @@ interface QuickActionMenuProps {
   onAddExam: () => void;
   /** تایمر پومودورو */
   onStartFocus: () => void;
+  /** یادداشت شخصی */
+  onOpenNotes: () => void;
 }
 
 interface QuickAction {
@@ -35,6 +37,7 @@ export const QuickActionMenu: React.FC<QuickActionMenuProps> = ({
   onStartDrill,
   onAddExam,
   onStartFocus,
+  onOpenNotes,
 }) => {
   const [isMounted, setIsMounted] = useState(false);
 
@@ -91,6 +94,15 @@ export const QuickActionMenu: React.FC<QuickActionMenuProps> = ({
       gradient: 'from-amber-400 to-orange-500',
       glow: 'rgba(245,158,11,0.45)',
       onClick: () => run(onAddExam),
+    },
+    {
+      id: 'notes',
+      label: 'یادداشت شخصی',
+      hint: 'ایده‌ها و نکته‌ها را روی کارت‌های سنجاقی نگه دار',
+      icon: FileText,
+      gradient: 'from-violet-500 to-fuchsia-600',
+      glow: 'rgba(139,92,246,0.45)',
+      onClick: () => run(onOpenNotes),
     },
     {
       id: 'pomodoro',

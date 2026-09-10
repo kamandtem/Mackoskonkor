@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.kamand.konkur',
-  appName: 'کنکور من',
+  appName: 'شمارش معکوس کنکور',
   webDir: 'dist',
   server: {
     androidScheme: 'https'
@@ -10,7 +10,7 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: true,
     captureInput: true,
-    backgroundColor: '#f2f5f9'
+    backgroundColor: '#11083e'
   }
 };
 

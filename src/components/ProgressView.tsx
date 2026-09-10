@@ -1,273 +1,47 @@
-import React from 'react';
-import {
-  BarChart3,
-  Calendar,
-  Clock,
-  Flame,
-  Gauge,
-  TrendingUp,
-} from 'lucide-react';
-import { TestDrill, UserProfile } from '../types/konkur';
+import React, { useMemo, useState } from 'react';
+import { Activity, BarChart3, BookOpen, CalendarDays, CheckCircle2, ChevronDown, Clock3, Flame, Gauge, Sparkles, Target, TrendingUp } from 'lucide-react';
+import { StudySession, TestDrill, UserProfile } from '../types/konkur';
 import { DrillStats, StudyStats } from '../utils/stats';
-import {
-  formatMinutesShort,
-  formatMinutesToPersian,
-  toPersianDigits,
-} from '../utils/jalali';
+import { formatMinutesShort, formatMinutesToPersian, toPersianDigits } from '../utils/jalali';
 import { EmptyState } from './EmptyState';
 
-interface ProgressViewProps {
-  stats: StudyStats;
-  drillStats: DrillStats;
-  drills: TestDrill[];
-  profile: UserProfile;
-  onStartFocus: () => void;
-}
+interface Props { stats: StudyStats; drillStats: DrillStats; drills: TestDrill[]; sessions: StudySession[]; profile: UserProfile; onStartFocus: () => void; }
+type Range = '7' | '30' | '90';
+const fa=(v:number|string)=>String(v).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
 
-/** همه‌ی اعداد این صفحه از جلسات واقعی کاربر می‌آید. چیزی از پیش پر نشده است. */
-export const ProgressView: React.FC<ProgressViewProps> = ({
-  stats,
-  drillStats,
-  profile,
-  onStartFocus,
-}) => {
-  if (!stats.hasAnyData && !drillStats.hasAnyData) {
-    return (
-      <div className="px-4 py-4 max-w-lg mx-auto w-full">
-        <EmptyState
-          icon={BarChart3}
-          title="هنوز آماری نداری"
-          description="به محض اینکه اولین جلسه‌ی تمرکز یا تست‌زنی‌ات را ثبت کنی، نمودارها و آمار همین‌جا ساخته می‌شود."
-          actionLabel="شروع اولین جلسه تمرکز"
-          onAction={onStartFocus}
-        />
-      </div>
-    );
-  }
-
-  const maxMinutes = Math.max(...stats.week.map((d) => d.minutes), profile.dailyGoalMinutes, 60);
-
-  return (
-    <div className="px-4 py-2 flex flex-col gap-4 max-w-lg mx-auto w-full pb-10">
-      {/* چهار سنجه‌ی اصلی */}
-      <div className="grid grid-cols-2 gap-3">
-        <MetricCard
-          icon={Clock}
-          iconTone="text-sky-500"
-          label="مطالعه امروز"
-          value={formatMinutesShort(stats.todayMinutes)}
-          note={`${toPersianDigits(stats.goalPct)}٪ از هدف روز`}
-          noteTone={stats.goalPct >= 100 ? 'text-emerald-600' : 'text-slate-400'}
-        />
-        <MetricCard
-          icon={TrendingUp}
-          iconTone="text-indigo-500"
-          label="این هفته"
-          value={formatMinutesShort(stats.weekMinutes)}
-          note={`میانگین ${formatMinutesShort(stats.weeklyDailyAverage)} در روز`}
-          noteTone="text-indigo-500"
-        />
-        <MetricCard
-          icon={Calendar}
-          iconTone="text-purple-500"
-          label="این ماه"
-          value={formatMinutesShort(stats.monthMinutes)}
-          note={`${toPersianDigits(stats.sessionsCount)} جلسه ثبت‌شده`}
-          noteTone="text-purple-500"
-        />
-        <MetricCard
-          icon={Flame}
-          iconTone="text-amber-500"
-          label="استریک"
-          value={`${toPersianDigits(stats.streak)} روز`}
-          note={`رکورد: ${toPersianDigits(stats.longestStreak)} روز`}
-          noteTone="text-amber-600"
-        />
-      </div>
-
-      {/* نمودار هفتگی */}
-      <div className="soft-card p-5">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-indigo-600" />
-            <h3 className="text-sm font-black text-slate-800">مطالعه‌ی این هفته</h3>
-          </div>
-          <span className="text-[11px] font-bold text-slate-400">شنبه تا جمعه</span>
-        </div>
-
-        <div className="flex items-end justify-between h-40 pt-4 px-1 gap-2 border-b border-slate-100 pb-2">
-          {stats.week.map((day) => {
-            const heightPct = day.minutes > 0 ? Math.max(6, (day.minutes / maxMinutes) * 100) : 0;
-            return (
-              <div
-                key={day.iso}
-                className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end"
-              >
-                <span className="text-[10px] font-bold text-slate-400 h-3">
-                  {day.minutes > 0 ? toPersianDigits((day.minutes / 60).toFixed(1)) : ''}
-                </span>
-
-                <div className="w-full max-w-[28px] h-full flex items-end justify-center bg-slate-100 rounded-t-xl overflow-hidden">
-                  {heightPct > 0 && (
-                    <div
-                      className={`w-full rounded-t-xl transition-all duration-700 ${
-                        day.isToday
-                          ? 'bg-gradient-to-t from-indigo-600 to-purple-500'
-                          : 'bg-gradient-to-t from-indigo-300 to-indigo-400'
-                      }`}
-                      style={{ height: `${heightPct}%` }}
-                    />
-                  )}
-                </div>
-
-                <span
-                  className={`text-[11px] font-bold mt-1 ${
-                    day.isToday
-                      ? 'text-indigo-600'
-                      : day.isFuture
-                        ? 'text-slate-300'
-                        : 'text-slate-500'
-                  }`}
-                >
-                  {day.weekdayName.slice(0, 4)}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-
-        <p className="text-[11px] text-slate-400 font-medium text-center mt-3">
-          خط هدف روزانه: {formatMinutesShort(profile.dailyGoalMinutes)}
-        </p>
-      </div>
-
-      {/* نکات تکمیلی */}
-      <div className="soft-card p-4 grid grid-cols-2 gap-3 divide-x divide-slate-100 divide-x-reverse">
-        <div className="text-center p-2">
-          <span className="text-xs text-slate-400 block mb-1 font-medium">
-            طولانی‌ترین جلسه
-          </span>
-          <div className="text-base font-black text-slate-800">
-            {stats.longestSessionMinutes > 0
-              ? formatMinutesToPersian(stats.longestSessionMinutes)
-              : '—'}
-          </div>
-        </div>
-
-        <div className="text-center p-2">
-          <span className="text-xs text-slate-400 block mb-1 font-medium">
-            مجموع کل مطالعه
-          </span>
-          <div className="text-base font-black text-slate-800">
-            {formatMinutesShort(stats.totalMinutes)}
-          </div>
-        </div>
-      </div>
-
-      {/* آمار تست‌زنی */}
-      {drillStats.hasAnyData && (
-        <div className="soft-card p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Gauge className="w-4 h-4 text-rose-600" />
-            <h3 className="text-sm font-black text-slate-800">تست‌زنی سرعتی</h3>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-100">
-              <span className="text-[10px] text-slate-400 font-medium block mb-0.5">
-                میانگین درصد
-              </span>
-              <div className="text-sm font-black text-slate-800">
-                {toPersianDigits(drillStats.averagePercent)}٪
-              </div>
-            </div>
-            <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-100">
-              <span className="text-[10px] text-slate-400 font-medium block mb-0.5">
-                بهترین درصد
-              </span>
-              <div className="text-sm font-black text-emerald-600">
-                {toPersianDigits(drillStats.bestPercent)}٪
-              </div>
-            </div>
-            <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-100">
-              <span className="text-[10px] text-slate-400 font-medium block mb-0.5">
-                سرعت متوسط
-              </span>
-              <div className="text-sm font-black text-slate-800">
-                {toPersianDigits(drillStats.averageSecondsPerQuestion)} ث
-              </div>
-            </div>
-          </div>
-
-          <p className="text-[11px] text-slate-400 font-medium text-center mt-3">
-            {toPersianDigits(drillStats.totalDrills)} جلسه ·{' '}
-            {toPersianDigits(drillStats.totalQuestions)} سؤال
-          </p>
-        </div>
-      )}
-
-      {/* تفکیک دروس */}
-      <div className="soft-card p-5">
-        <h3 className="text-sm font-black text-slate-800 mb-4">تفکیک مطالعه بر اساس دروس</h3>
-
-        {stats.totalMinutes === 0 ? (
-          <p className="text-xs text-slate-400 font-medium text-center py-6">
-            هنوز مطالعه‌ای برای هیچ درسی ثبت نشده است.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {stats.subjects
-              .filter((s) => s.minutes > 0)
-              .map((sub) => (
-                <div key={sub.id}>
-                  <div className="flex items-center justify-between text-xs font-bold mb-1">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: sub.color }}
-                      />
-                      <span className="text-slate-800 truncate">{sub.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-500 shrink-0">
-                      <span>{formatMinutesShort(sub.minutes)}</span>
-                      <span className="text-slate-400 font-semibold">
-                        ({toPersianDigits(sub.sharePct)}٪)
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${Math.max(2, sub.sharePct)}%`,
-                        backgroundColor: sub.color,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+export const ProgressView: React.FC<Props> = ({ stats, drillStats, sessions, profile, onStartFocus }) => {
+  const [range,setRange]=useState<Range>('7');
+  const [metric,setMetric]=useState<'study'|'average'|'tests'>('study');
+  const [subjectOpen,setSubjectOpen]=useState(true);
+  if (!stats.hasAnyData && !drillStats.hasAnyData) return <div className="px-4 py-4 max-w-lg mx-auto w-full"><EmptyState icon={BarChart3} title="هنوز آماری نداری" description="به محض اینکه اولین جلسه‌ی تمرکز یا تست‌زنی‌ات ثبت شود، گزارش واقعی‌ات همین‌جا ساخته می‌شود." actionLabel="شروع اولین جلسه تمرکز" onAction={onStartFocus}/></div>;
+  const chartDays = useMemo(() => {
+    if (range === '7') return stats.week.map(d => ({ label: d.weekdayName.slice(0, 3), minutes: d.minutes, isToday: d.isToday }));
+    const count = range === '30' ? 30 : 90;
+    const today = new Date();
+    return Array.from({ length: range === '30' ? 10 : 12 }, (_, i) => {
+      const end = new Date(today); end.setDate(today.getDate() - (range === '30' ? (9 - i) * 3 : (11 - i) * 7));
+      const start = new Date(end); start.setDate(end.getDate() - (range === '30' ? 2 : 6));
+      const minutes = sessions.filter(s => { const d = new Date(`${s.isoDate}T12:00:00`); return d >= start && d <= end; }).reduce((n, s) => n + s.durationMinutes, 0);
+      return { label: `${end.getMonth()+1}/${end.getDate()}`, minutes, isToday: i === (range === '30' ? 9 : 11) };
+    });
+  }, [range, stats.week, sessions]);
+  const max=Math.max(...chartDays.map(d=>d.minutes),profile.dailyGoalMinutes,60);
+  const bestSubject=stats.subjects.find(s=>s.minutes>0);
+  const progressPct=Math.min(100,Math.round(stats.todayMinutes/Math.max(1,profile.dailyGoalMinutes)*100));
+  const periodLabel=range==='7'?'۷ روز اخیر':range==='30'?'۳۰ روز اخیر':'۹۰ روز اخیر';
+  return <section className="progress-page" dir="rtl">
+    <header className="progress-heading"><div><span><Sparkles/> گزارش واقعی عملکردت</span><h1>پیشرفت</h1><p>کمتر حدس بزن، بیشتر از روند خودت تصمیم بگیر.</p></div><div className="progress-heading-mark"><TrendingUp/></div></header>
+    <div className="progress-range"><span>بازه گزارش</span><div>{(['7','30','90'] as Range[]).map(r=><button key={r} className={range===r?'active':''} onClick={()=>setRange(r)}>{r==='7'?'۷ روز':r==='30'?'۳۰ روز':'۹۰ روز'}</button>)}</div></div>
+    <div className="progress-hero"><div className="progress-hero-top"><div><span>امروز</span><strong>{formatMinutesShort(stats.todayMinutes)}</strong><small>{fa(progressPct)}٪ از هدف روزانه</small></div><div className="progress-ring" style={{'--p':`${progressPct*3.6}deg`} as React.CSSProperties}><b>{fa(progressPct)}<small>٪</small></b></div></div><div className="progress-hero-track"><i style={{width:`${progressPct}%`}}/></div><div className="progress-hero-bottom"><span><Target/> هدف: {formatMinutesShort(profile.dailyGoalMinutes)}</span><span><Flame/> {fa(stats.streak)} روز پیوسته</span></div></div>
+    <div className="progress-metrics"><Metric icon={Clock3} label="این هفته" value={formatMinutesShort(stats.weekMinutes)} note={`میانگین ${formatMinutesShort(stats.weeklyDailyAverage)} در روز`} tone="indigo"/><Metric icon={CalendarDays} label="این ماه" value={formatMinutesShort(stats.monthMinutes)} note={`${fa(stats.sessionsCount)} جلسه ثبت‌شده`} tone="coral"/><Metric icon={Activity} label="بهترین جلسه" value={formatMinutesToPersian(stats.longestSessionMinutes)} note={`رکورد ${fa(stats.longestStreak)} روزه`} tone="mint"/></div>
+    <div className="progress-section-head"><div><span>نمودار عملکرد</span><small>{periodLabel}، بر پایه جلسات ثبت‌شده</small></div><div className="progress-metric-switch">{(['study','average','tests'] as const).map(m=><button key={m} className={metric===m?'active':''} onClick={()=>setMetric(m)}>{m==='study'?'مطالعه':m==='average'?'میانگین':'تست'}</button>)}</div></div>
+    <div className="progress-chart"><div className="progress-chart-top"><span>{metric==='study'?'مجموع ساعات مطالعه':metric==='average'?'میانگین روزانه':'تعداد تست‌ها'}</span><b>{metric==='tests'?fa(drillStats.totalQuestions):metric==='average'?formatMinutesShort(stats.weeklyDailyAverage):formatMinutesShort(stats.weekMinutes)}</b></div><div className="progress-bars">{chartDays.map((day,i)=>{const v=metric==='study'?day.minutes:metric==='average'?Math.round(day.minutes/1):drillStats.totalQuestions&&i===chartDays.length-1?drillStats.totalQuestions:0;const h=v?Math.max(10,v/(metric==='tests'?Math.max(1,drillStats.totalQuestions):max)*100):3;return <div className="progress-bar-day" key={`${day.label}-${i}`}><span>{v?fa(metric==='tests'?v:Math.round(v/60*10)/10):''}</span><i className={day.isToday?'today':''} style={{height:`${h}%`}}/><small className={day.isToday?'today-label':''}>{day.label.slice(0,3)}</small></div>})}</div><div className="progress-chart-foot"><span>کمتر</span><i/><i/><i/><i/><span>بیشتر</span></div></div>
+    <div className="progress-insight"><span><Sparkles/></span><p>{bestSubject?<>این هفته بیشترین زمانت برای <b>{bestSubject.name}</b> بوده. همین درس را با یک بازه‌ی عمیق‌تر ادامه بده.</>:<>هنوز داده‌ای برای تفکیک درس‌ها نداریم. یک جلسه شروع کن.</>}</p></div>
+    <div className="progress-section-head subject-head"><div><span>ترکیب مطالعه</span><small>سهم هر درس از مجموع {formatMinutesShort(stats.totalMinutes)}</small></div><button onClick={()=>setSubjectOpen(v=>!v)}><ChevronDown className={subjectOpen?'up':''}/></button></div>
+    {subjectOpen&&<div className="progress-subjects">{stats.subjects.filter(s=>s.minutes>0).slice(0,6).map(s=><div className="progress-subject" key={s.id}><div className="progress-subject-row"><span><i style={{backgroundColor:s.color}}/>{s.name}</span><b>{formatMinutesShort(s.minutes)} <small>{fa(s.sharePct)}٪</small></b></div><div className="progress-subject-track"><i style={{width:`${Math.max(4,s.sharePct)}%`,backgroundColor:s.color}}/></div><small className="progress-subject-goal">هدف هفتگی: {fa(s.weeklyGoalPct)}٪ تکمیل</small></div>)}</div>}
+    {drillStats.hasAnyData&&<div className="progress-drills"><div className="progress-section-head"><div><span>تست‌زنی سرعتی</span><small>از گزارش‌های ثبت‌شده</small></div><Gauge/></div><div className="progress-drill-grid"><div><b>{fa(drillStats.averagePercent)}٪</b><span>میانگین درصد</span></div><div><b>{fa(drillStats.bestPercent)}٪</b><span>بهترین درصد</span></div><div><b>{fa(drillStats.averageSecondsPerQuestion)} ث</b><span>سرعت پاسخ</span></div></div><p><CheckCircle2/> {fa(drillStats.totalDrills)} جلسه، {fa(drillStats.totalQuestions)} سؤال</p></div>}
+    <button className="progress-focus-cta" onClick={onStartFocus}><BookOpen/><span><b>جلسه بعدی را شروع کن</b><small>گزارش بعدی تو همین‌جا دیده می‌شود</small></span><TrendingUp/></button>
+  </section>;
 };
 
-const MetricCard: React.FC<{
-  icon: React.ComponentType<{ className?: string }>;
-  iconTone: string;
-  label: string;
-  value: string;
-  note: string;
-  noteTone: string;
-}> = ({ icon: Icon, iconTone, label, value, note, noteTone }) => (
-  <div className="soft-card p-4">
-    <div className="flex items-center gap-2 mb-2 text-slate-400">
-      <Icon className={`w-4 h-4 ${iconTone}`} />
-      <span className="text-xs font-semibold">{label}</span>
-    </div>
-    <div className="text-lg font-black text-slate-800">{value}</div>
-    <span className={`text-[10px] font-bold mt-1 block ${noteTone}`}>{note}</span>
-  </div>
-);
+const Metric:React.FC<{icon:React.ComponentType<{className?:string}>;label:string;value:string;note:string;tone:'indigo'|'coral'|'mint'}>=({icon:Icon,label,value,note,tone})=><div className={`progress-metric tone-${tone}`}><span><Icon/></span><small>{label}</small><b>{value}</b><em>{note}</em></div>;

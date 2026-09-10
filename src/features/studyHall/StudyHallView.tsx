@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Armchair, ArrowRight, BarChart3, BookOpen, Building2, Camera, Check, ChevronLeft,
+  Armchair, ArrowRight, BarChart3, BookOpen, Building2, Camera, Check, ChevronLeft, Filter, LockKeyhole, MessageCircle, Search, Trophy,
   CircleStop, Clock3, DoorOpen, Map, Pause, Play, QrCode, RefreshCw, ScanLine,
   ShieldCheck, Sparkles, UserRound, Users, Wrench, X,
 } from 'lucide-react';
@@ -212,18 +212,7 @@ export const StudyHallView: React.FC<Props> = ({ subjects, dailyGoalMinutes, tod
       <button className={experience === 'physical' ? 'active' : ''} onClick={() => setExperience('physical')}><Building2 /> حضوری</button>
     </div>
 
-    {experience === 'virtual' && <div className="hall-virtual">
-      <div className="hall-goal-line"><div><span>امروز</span><strong>{fa(todayMinutes)} از {fa(dailyGoalMinutes)} دقیقه</strong></div><div className="hall-goal-track"><i style={{ transform: `scaleX(${goalPercent / 100})` }} /></div><b>{fa(goalPercent)}٪</b></div>
-      <div className="hall-virtual-stage">
-        <span className="hall-stage-kicker">برای یک بازه بدون حواس‌پرتی آماده‌ای؟</span>
-        <div className="hall-stage-symbol"><BookOpen /></div>
-        <h2>فقط درس بعدی</h2>
-        <p>زمان را نمی‌شماریم که شلوغش کنیم؛ می‌شماریم تا پیشرفت واقعی‌ات دیده شود.</p>
-        <label className="hall-subject-select"><span>درس این نشست</span><select value={subjectId} onChange={e => setSubjectId(e.target.value)}>{subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
-        <button className="hall-primary-action" disabled={!selectedSubject} onClick={() => void startSession('virtual')}><Play /> شروع مطالعه</button>
-      </div>
-      <div className="hall-quiet-stats"><span><b>{fa(streak)}</b> روز پیوستگی</span><i /><span><b>{fa(snapshot.sessions.filter(s => s.mode === 'virtual' && s.status === 'completed').length)}</b> نشست مجازی</span></div>
-    </div>}
+    {experience === 'virtual' && <VirtualRooms subjects={subjects} selectedSubjectId={subjectId} onSubjectChange={setSubjectId} onStart={() => void startSession('virtual')} />}
 
     {experience === 'physical' && physicalView === 'student' && <div className="hall-physical-student">
       <div className="hall-location-line"><div><span><Building2 /></span><p><b>{snapshot.branch.name}</b><small>{snapshot.hall.name}، {snapshot.sections[0].floorName}</small></p></div><button>تغییر <ChevronLeft /></button></div>
@@ -245,6 +234,48 @@ export const StudyHallView: React.FC<Props> = ({ subjects, dailyGoalMinutes, tod
     </div>}
   </section>;
 };
+
+type VirtualRoom = { id: string; title: string; handle: string; category: string; members: number; capacity: number; accent: string; pattern: string; private?: boolean; leader: string; minutes: string; avatar: string };
+const orbitMembers=[
+  {name:'آرین',time:'۰۳:۲۱:۵۵',image:'/avatars/student-1.webp',status:'تمرکز'},
+  {name:'سارا',time:'۰۲:۴۸:۰۱',image:'/avatars/student-2.webp',status:'تمرکز'},
+  {name:'مانی',time:'۰۱:۳۵:۲۰',image:'/avatars/student-3.webp',status:'مرور'},
+  {name:'رها',time:'۰۰:۵۹:۱۷',image:'/avatars/student-4.webp',status:'تمرکز'},
+  {name:'نیما',time:'۰۴:۲۷:۵۷',image:'/avatars/student-5.webp',status:'استراحت'},
+  {name:'یلدا',time:'۰۲:۰۹:۴۰',image:'/avatars/student-6.webp',status:'تمرکز'},
+];
+const virtualRooms: VirtualRoom[] = [
+  { id: 'deep', title: 'اتاق مطالعه عمیق', handle: '@puzzle_focus', category: 'کنکور تجربی', members: 18, capacity: 30, accent: 'violet', pattern: 'orbital', leader: 'رها', minutes: '۰۳:۲۱:۵۵', avatar: 'ر', },
+  { id: 'biology', title: 'زیست‌شناسی، آرام و پیوسته', handle: '@bio_room', category: 'مطالعه گروهی', members: 8, capacity: 20, accent: 'mint', pattern: 'leaf', leader: 'سارا', minutes: '۰۱:۴۵:۲۰', avatar: 'س', private: true },
+  { id: 'math', title: 'ریاضی بدون حواس‌پرتی', handle: '@math_lab', category: 'آزمون و تحلیل', members: 12, capacity: 25, accent: 'coral', pattern: 'grid', leader: 'علی', minutes: '۰۲:۱۲:۴۰', avatar: 'ع', },
+  { id: 'night', title: 'شب‌خوان‌های پازل', handle: '@night_readers', category: 'سکوت شبانه', members: 24, capacity: 40, accent: 'ink', pattern: 'stars', leader: 'نیلا', minutes: '۰۴:۰۸:۰۹', avatar: 'ن', private: true },
+];
+
+const VirtualRooms: React.FC<{ subjects: SubjectItem[]; selectedSubjectId: string; onSubjectChange: (value: string) => void; onStart: () => void }> = ({ subjects, selectedSubjectId, onSubjectChange, onStart }) => {
+  const [mode, setMode] = useState<'all' | 'mine'>('all');
+  const [query, setQuery] = useState('');
+  const [room, setRoom] = useState<VirtualRoom | null>(null);
+  const [requested, setRequested] = useState(false);
+  const visibleRooms = virtualRooms.filter(item => mode === 'all' || item.id === 'deep').filter(item => `${item.title} ${item.category}`.includes(query.trim()));
+  if (room) return <div className="virtual-room-detail">
+    <button className="virtual-back" onClick={() => { setRoom(null); setRequested(false); }}><ArrowRight /><span>بازگشت به اتاق‌ها</span></button>
+    <div className={`virtual-profile-hero ${room.pattern}`}><div className="virtual-hero-actions"><button><ShieldCheck /></button><button><ChevronLeft /></button></div><div className="virtual-room-avatar">{room.avatar}<i><Trophy /></i></div><span className="virtual-handle">{room.handle}</span><h2>{room.title}</h2><div className="virtual-profile-tabs"><button className="active">جزئیات</button><button>اتاق مطالعه</button><button>رتبه‌بندی</button></div></div>
+    <div className="virtual-quote"><span>❝</span><p>با هم شروع می‌کنیم، با تمرکز ادامه می‌دیم.</p></div>
+    <div className="virtual-room-facts"><span><Users /><b>{fa(room.members)}</b> نفر</span><span><Clock3 /><b>{room.minutes}</b> زمان فعال</span></div>
+    <div className="virtual-live-map"><div className="virtual-orbit-line orbit-one"/><div className="virtual-orbit-line orbit-two"/><div className="virtual-live-center"><span className="virtual-pulse"/><strong>{fa(room.members)}</strong><span>همین حالا متمرکزند</span><small>هدف جمعی امروز: ۴۲ ساعت</small></div>{orbitMembers.map((member,i)=><button key={member.name} className={`virtual-node node-${i}`} aria-label={`${member.name}، ${member.status}`}><i><img src={member.image} alt=""/></i><b>{member.name}</b><small>{member.time}</small></button>)}</div>
+    <label className="hall-subject-select virtual-subject"><span>درس این نشست</span><select value={selectedSubjectId} onChange={e => onSubjectChange(e.target.value)}>{subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+    {requested?<div className="virtual-requested"><Check/><span><b>درخواستت ثبت شد</b><small>با تأیید مدیر اتاق، ورود برایت باز می‌شود.</small></span></div>:<button className="hall-primary-action virtual-join" onClick={()=>room.private?setRequested(true):onStart()}>{room.private?<><LockKeyhole/> درخواست عضویت</>:<><Play/> ورود و شروع مطالعه</>}</button>}
+  </div>;
+  return <div className="virtual-rooms" dir="rtl">
+    <div className="virtual-room-heading"><div><span><Sparkles /> تمرکز اجتماعی، بدون شلوغی</span><h2>اتاق‌های مطالعه</h2></div><div className="virtual-heading-actions"><button><Filter /></button><button><BellIcon /></button></div></div>
+    <label className="virtual-search"><Search /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="جست‌وجوی اتاق، سازنده..." /></label>
+    <div className="virtual-tabs"><button className={mode === 'all' ? 'active' : ''} onClick={() => setMode('all')}><Users /> همه اتاق‌ها</button><button className={mode === 'mine' ? 'active' : ''} onClick={() => setMode('mine')}><ShieldCheck /> اتاق‌های من</button></div>
+    <div className="virtual-featured"><div className="virtual-featured-pattern"><Trophy /></div><div><span>پیشنهاد امروز پازل</span><strong>اتاق‌های پرتلاش‌ها</strong><small>با آدم‌هایی که همین حالا مشغول‌اند همراه شو</small></div><ChevronLeft /></div>
+    <div className="virtual-list-heading"><div><span>اتاق‌های مطالعه کاربران</span><small>{fa(visibleRooms.length)} اتاق فعال</small></div><button>مرتب‌سازی <ChevronLeft /></button></div>
+    <div className="virtual-room-list">{visibleRooms.map(item => <button key={item.id} className={`virtual-room-card ${item.accent} ${item.pattern}`} onClick={() => setRoom(item)}><div className="virtual-card-art"><span className="virtual-card-avatar">{item.avatar}</span><span className="virtual-card-handle">{item.handle}</span>{item.private && <LockKeyhole />}</div><div className="virtual-card-body"><div><strong>{item.title}</strong><small>{item.category}</small></div><span className="virtual-card-score">{fa(item.members)} | {fa(item.capacity)}</span></div><div className="virtual-card-foot"><span><i /> {fa(item.members)} نفر در حال مطالعه</span><span><MessageCircle /> گفتگو</span></div></button>)}</div>
+  </div>;
+};
+const BellIcon: React.FC<{className?:string}> = ({className}) => <span className={className}>♧</span>;
 
 const ManagerHall: React.FC<{ snapshot: StudyHallSnapshot; selectedSeat: Seat | null; setSelectedSeat: (seat: Seat | null) => void; onUpdated: () => Promise<void> }> = ({ snapshot, selectedSeat, setSelectedSeat, onUpdated }) => {
   const occupied = snapshot.seats.filter(s => s.status === 'occupied').length;

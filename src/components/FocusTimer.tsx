@@ -6,6 +6,35 @@ import { toPersianDigits } from '../utils/jalali';
 import { soundEngine } from '../utils/soundEngine';
 import { EmptyState } from './EmptyState';
 
+interface PersistedFocusTimer {
+  mode: 'work' | 'break';
+  totalWorkMinutes: number;
+  totalBreakMinutes: number;
+  secondsRemaining: number;
+  isActive: boolean;
+  selectedSubjectId: string;
+  selectedPresetIndex: number;
+  endTime: number | null;
+}
+
+const FOCUS_TIMER_STORAGE = 'konkur_focus_timer_v1';
+const readPersistedFocusTimer = (): PersistedFocusTimer | null => {
+  try {
+    const raw = localStorage.getItem(FOCUS_TIMER_STORAGE);
+    return raw ? (JSON.parse(raw) as PersistedFocusTimer) : null;
+  } catch {
+    return null;
+  }
+};
+const writePersistedFocusTimer = (value: PersistedFocusTimer | null) => {
+  try {
+    if (value) localStorage.setItem(FOCUS_TIMER_STORAGE, JSON.stringify(value));
+    else localStorage.removeItem(FOCUS_TIMER_STORAGE);
+  } catch {
+    // Timer remains usable if storage is unavailable.
+  }
+};
+
 interface FocusTimerProps {
   subjects: SubjectItem[];
   preselectedSubject?: string;
@@ -26,6 +55,8 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   onOpenSounds,
   currentSound,
 }) => {
+  const persisted = useMemo(() => readPersistedFocusTimer(), []);
+  const restoredRef = useRef(Boolean(persisted));
   // اولین گزینه همیشه تنظیم دلخواه خودِ کاربر است
   const PRESETS = useMemo(() => {
     const base = [
@@ -49,15 +80,16 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
       }));
   }, [workMinutes, breakMinutes]);
 
-  const [selectedPresetIndex, setSelectedPresetIndex] = useState(0);
-  const [mode, setMode] = useState<'work' | 'break'>('work');
-  const [totalWorkMinutes, setTotalWorkMinutes] = useState(workMinutes);
-  const [totalBreakMinutes, setTotalBreakMinutes] = useState(breakMinutes);
-  const [secondsRemaining, setSecondsRemaining] = useState(workMinutes * 60);
-  const [isActive, setIsActive] = useState(false);
+  const [selectedPresetIndex, setSelectedPresetIndex] = useState(persisted?.selectedPresetIndex ?? 0);
+  const [mode, setMode] = useState<'work' | 'break'>(persisted?.mode ?? 'work');
+  const [totalWorkMinutes, setTotalWorkMinutes] = useState(persisted?.totalWorkMinutes ?? workMinutes);
+  const [totalBreakMinutes, setTotalBreakMinutes] = useState(persisted?.totalBreakMinutes ?? breakMinutes);
+  const [secondsRemaining, setSecondsRemaining] = useState(persisted?.secondsRemaining ?? workMinutes * 60);
+  const [isActive, setIsActive] = useState(persisted?.isActive ?? false);
 
   // Subject choice
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(() => {
+    if (persisted?.selectedSubjectId) return persisted.selectedSubjectId;
     if (preselectedSubject) {
       const match = subjects.find((s) => s.name === preselectedSubject);
       if (match) return match.id;
@@ -65,8 +97,13 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
     return subjects[0]?.id ?? '';
   });
 
-  // اگر تنظیمات پومودورو عوض شد و تایمر در حال اجرا نیست، هم‌تراز شو
+  // اگر تنظیمات پومودورو عوض شد و تایمر در حال اجرا نیست، هم‌تراز شو.
+  // یک بار state ذخیره‌شده را دست‌نخورده می‌گذاریم تا جابه‌جایی بین بخش‌ها تایمر را ریست نکند.
   useEffect(() => {
+    if (restoredRef.current) {
+      restoredRef.current = false;
+      return;
+    }
     if (isActive) return;
     setTotalWorkMinutes(workMinutes);
     setTotalBreakMinutes(breakMinutes);
@@ -83,7 +120,20 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   }, [subjects, selectedSubjectId]);
 
   // End timestamp reference for background-accurate timing
-  const endTimeRef = useRef<number | null>(null);
+  const endTimeRef = useRef<number | null>(persisted?.endTime ?? null);
+
+  useEffect(() => {
+    writePersistedFocusTimer({
+      mode,
+      totalWorkMinutes,
+      totalBreakMinutes,
+      secondsRemaining,
+      isActive,
+      selectedSubjectId,
+      selectedPresetIndex,
+      endTime: endTimeRef.current,
+    });
+  }, [mode, totalWorkMinutes, totalBreakMinutes, secondsRemaining, isActive, selectedSubjectId, selectedPresetIndex]);
 
   // Update selected subject if preselectedSubject changes
   useEffect(() => {
@@ -276,7 +326,8 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
       </div>
 
       {/* Giant Circular Timer Dial */}
-      <div className="focus-dial-wrap">
+      <div className={`focus-dial-wrap ${isActive ? 'is-running' : ''}`}>
+        <div className="focus-orbit-layer" aria-hidden="true"><i className="orbit-ring ring-a" /><i className="orbit-ring ring-b" /><i className="orbit-ring ring-c" /></div>
         <svg width={dialSize} height={dialSize} className="transform -rotate-90">
           <defs>
             <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">

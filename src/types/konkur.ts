@@ -49,6 +49,16 @@ export interface TaskItem {
   loggedMinutes?: number;
 }
 
+
+export interface NoteItem {
+  id: string;
+  title: string;
+  content: string;
+  color: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface StudySession {
   id: string;
   subjectId: string;
@@ -89,7 +99,7 @@ export interface TestDrill {
   timestamp: number;
 }
 
-export type NavTab = 'home' | 'planner' | 'focus' | 'studyHall' | 'progress' | 'report' | 'exams' | 'drill';
+export type NavTab = 'home' | 'flashcards' | 'planner' | 'focus' | 'studyHall' | 'schedule' | 'advisors' | 'progress' | 'report' | 'exams' | 'drill';
 
 export type AmbientSoundId =
   | 'none'
@@ -118,4 +128,5 @@ export interface AppBackup {
   sessions: StudySession[];
   exams: MockExam[];
   drills: TestDrill[];
+  notes: NoteItem[];
 }

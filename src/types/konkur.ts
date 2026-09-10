@@ -15,6 +15,8 @@ export interface UserProfile {
   notificationsEnabled: boolean;
   /** عکس پروفایل کاربر به شکل data:image/... (خالی = بدون عکس) */
   avatarDataUrl?: string;
+  /** نوع عداد شمارش معکوس */
+  countdownStyle: CountdownStyle;
   /** تنها وقتی true می‌شود که کاربر اطلاعات اولیه‌اش را ثبت کرده باشد */
   isOnboarded: boolean;
 }

@@ -115,6 +115,7 @@ export const EMPTY_PROFILE: UserProfile = {
   pomodoroBreakMinutes: 5,
   notificationsEnabled: true,
   avatarDataUrl: '',
+  countdownStyle: 'gradient-ring',
   isOnboarded: false,
 };
 
@@ -169,6 +170,11 @@ function sanitizeAvatar(raw: unknown): string {
   return value;
 }
 
+function validateCountdownStyle(raw: unknown): any {
+  const valid = ['gradient-ring', 'liquid-ring', 'digital-earth', 'mountain-progress', 'vertical-gauge'];
+  return typeof raw === 'string' && valid.includes(raw) ? raw : 'gradient-ring';
+}
+
 export function sanitizeProfile(raw: unknown): UserProfile | null {
   if (!isObj(raw)) return null;
   const major = ALL_MAJORS.includes(raw.major as MajorType)
@@ -185,6 +191,7 @@ export function sanitizeProfile(raw: unknown): UserProfile | null {
     pomodoroBreakMinutes: num(raw.pomodoroBreakMinutes, 5, 1, 60),
     notificationsEnabled: raw.notificationsEnabled !== false,
     avatarDataUrl: sanitizeAvatar(raw.avatarDataUrl),
+    countdownStyle: validateCountdownStyle(raw.countdownStyle),
     isOnboarded: raw.isOnboarded === true,
   };
 }

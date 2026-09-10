@@ -5,7 +5,7 @@ import { toPersianDigits } from '../utils/jalali';
 
 type Progress={known:string[];starred:string[]};
 const KEY='konkur_flashcards_progress_v1';
-const read=():Progress=>{try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch{return {known:[],starred:[]}}};
+const read=():Progress=>{try{const parsed=JSON.parse(localStorage.getItem(KEY)||'{}') as Partial<Progress>;return {known:Array.isArray(parsed.known)?parsed.known.filter((id):id is string=>typeof id==='string'):[],starred:Array.isArray(parsed.starred)?parsed.starred.filter((id):id is string=>typeof id==='string'):[]}}catch{return {known:[],starred:[]}}};
 const save=(p:Progress)=>{try{localStorage.setItem(KEY,JSON.stringify(p))}catch{}};
 const fa=(n:number|string)=>toPersianDigits(String(n));
 interface Props{onClose?:()=>void}

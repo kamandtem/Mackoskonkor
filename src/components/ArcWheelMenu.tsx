@@ -70,7 +70,7 @@ interface ArcWheelMenuProps {
 }
 
 /** همه‌ی بخش‌های برنامه در یک منو — منوی کشویی قدیمی حذف شده است */
-export const ARC_MENU_ITEMS: ArcMenuItem[] = [
+const ARC_MENU_ITEMS_BASE: ArcMenuItem[] = [
   {
     id: 'home',
     labelFa: 'خانه',
@@ -209,6 +209,9 @@ export const ARC_MENU_ITEMS: ArcMenuItem[] = [
     actionType: 'reset',
   },
 ];
+
+const MENU_PRIORITY = ['home','planner','focus','schedule','manual_log','drill','progress','exams','flashcards','advisors','break','sounds','profile','backup','about','reset'];
+export const ARC_MENU_ITEMS: ArcMenuItem[] = [...ARC_MENU_ITEMS_BASE].sort((a,b)=>MENU_PRIORITY.indexOf(a.id)-MENU_PRIORITY.indexOf(b.id));
 
 const pad2 = (value: number) => toPersianDigits(String(Math.max(0, value)).padStart(2, '0'));
 

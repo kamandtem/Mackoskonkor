@@ -47,8 +47,8 @@ export const CountdownDial: React.FC<CountdownDialProps> = ({
   });
 
   return (
-    <div className={`countdown-flip-card-shell ${showJourney ? 'is-flipped' : ''}`} onClick={()=>setShowJourney(v=>!v)}>
-    <div className="countdown-flip-card countdown-flip-front" onClick={event=>event.stopPropagation()}>
+    <div className={`countdown-flip-card-shell ${showJourney ? 'is-flipped' : ''}`}>
+    <div className="countdown-flip-card countdown-flip-front" onClick={()=>setShowJourney(true)} role="button" tabIndex={0} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();setShowJourney(true)}}}>
       {/* Subtle top indicator / tag */}
       <div className="flex items-center justify-between mb-1 px-1">
         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
@@ -56,7 +56,7 @@ export const CountdownDial: React.FC<CountdownDialProps> = ({
           {examName}
         </span>
         <button
-          onClick={onOpenDatePicker}
+          onClick={(event)=>{event.stopPropagation();onOpenDatePicker()}}
           className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-full transition-colors flex items-center gap-1"
         >
           <Calendar className="w-3 h-3" />
@@ -183,7 +183,7 @@ export const CountdownDial: React.FC<CountdownDialProps> = ({
         <div className="mt-4 w-full flex justify-center">
           <button
             id="btn-quick-focus"
-            onClick={onStartFocus}
+            onClick={(event)=>{event.stopPropagation();onStartFocus()}}
             className="w-full py-3 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 text-white font-bold text-sm flex items-center justify-center gap-2 soft-button hover:brightness-105 active:scale-98 transition-all"
           >
             <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
@@ -195,12 +195,12 @@ export const CountdownDial: React.FC<CountdownDialProps> = ({
       </div>
     </div>
 
-    <div className="countdown-flip-card countdown-flip-back" dir="rtl">
+    <div className="countdown-flip-card countdown-flip-back" dir="rtl" onClick={()=>setShowJourney(false)}>
       <div className="journey-map-bg" aria-hidden="true"><span className="journey-glow"/></div>
-      <div className="journey-back-head"><span><SparklesIcon/> مسیر پیشرفت تو</span><button onClick={()=>setShowJourney(false)}><ArrowLeftIcon/></button></div>
+      <div className="journey-back-head"><span><SparklesIcon/> مسیر پیشرفت تو</span><button onClick={event=>{event.stopPropagation();setShowJourney(false)}}><ArrowLeftIcon/></button></div>
       <div className="journey-copy"><small>هر روزی که می‌گذرد، یک قدم بالاتر</small><strong>{toPersianDigits(Math.round(Math.min(100, Math.max(0, progressPercent))))}٪ از مسیر طی شده</strong><p>موقعیت امروزت روی جاده‌ی قله</p></div>
       <JourneyPath progress={progressPercent} daysRemaining={daysRemaining}/>
-      <button className="journey-return" onClick={()=>setShowJourney(false)}>بازگشت به شمارشگر</button>
+      <button className="journey-return" onClick={event=>{event.stopPropagation();setShowJourney(false)}}>بازگشت به شمارشگر</button>
     </div>
     </div>
   );

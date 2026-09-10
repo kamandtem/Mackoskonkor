@@ -12,7 +12,7 @@ import {
 import { normalizeJalaliKey, normalizeTime, todayJalaliKey, toLocalIso } from './jalali';
 
 export const SCHEMA_VERSION = 2;
-export const APP_VERSION = '2.6.0';
+export const APP_VERSION = '2.6.3';
 
 const STORAGE_KEYS = {
   PROFILE: 'konkur_profile_v2',
@@ -285,7 +285,7 @@ function sanitizeDrills(raw: unknown): TestDrill[] {
   return raw.filter(isObj).map((d, i) => {
     const total = num(d.totalQuestions, 0, 0, 500);
     const correct = num(d.correct, 0, 0, total);
-    const wrong = num(d.wrong, 0, 0, total);
+    const wrong = num(d.wrong, 0, 0, Math.max(0, total - correct));
     const blank = Math.max(0, total - correct - wrong);
     return {
       id: str(d.id) || `drill-${Date.now()}-${i}`,
@@ -398,6 +398,7 @@ export interface ParsedBackup {
   sessions: StudySession[];
   exams: MockExam[];
   drills: TestDrill[];
+  notes: NoteItem[];
 }
 
 /** فایل پشتیبان کاربر را می‌خواند. در صورت نامعتبر بودن، خطای فارسی می‌دهد */

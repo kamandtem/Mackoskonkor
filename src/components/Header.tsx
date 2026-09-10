@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Bell, BellOff, Menu, X } from 'lucide-react';
+import { Bell, BellOff, ChevronLeft, Menu, X } from 'lucide-react';
 import { toPersianDigits } from '../utils/jalali';
 
 export interface HeaderNotification {
   id: string;
   title: string;
   description: string;
+  targetTab: 'planner' | 'exams' | 'progress';
 }
 
 interface HeaderProps {
@@ -16,6 +17,7 @@ interface HeaderProps {
   onOpenMenu: () => void;
   /** با لمس آیکن یا نام برنامه به خانه برمی‌گردیم */
   onOpenHome?: () => void;
+  onNotificationClick?: (item: HeaderNotification) => void;
 }
 
 /**
@@ -27,6 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
   notifications,
   onOpenMenu,
   onOpenHome,
+  onNotificationClick,
 }) => {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -68,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({
               aria-label={appName}
               className="w-11 h-11 rounded-2xl bg-orange-100/70 border border-orange-200 flex items-center justify-center active:scale-95 transition-all shrink-0 overflow-hidden"
             >
-              <img src="/icon.svg" alt="" className="w-7 h-7" />
+              <img src="/icon.svg" alt="" className="app-logo-fit" />
             </button>
 
             <button
@@ -119,11 +122,10 @@ export const Header: React.FC<HeaderProps> = ({
             ) : (
               <ul className="max-h-64 overflow-y-auto no-scrollbar divide-y divide-slate-100">
                 {notifications.map((item) => (
-                  <li key={item.id} className="px-4 py-3">
-                    <p className="text-[12px] font-black text-slate-800">{item.title}</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                      {item.description}
-                    </p>
+                  <li key={item.id}>
+                    <button type="button" className="notification-item" onClick={()=>{setIsPanelOpen(false);onNotificationClick?.(item)}}>
+                      <span><p>{item.title}</p><small>{item.description}</small></span><ChevronLeft />
+                    </button>
                   </li>
                 ))}
               </ul>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, Pause, Play, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
+import { BookOpen, Check, ChevronDown, Pause, Play, RotateCcw, Search, Sparkles, Volume2, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { AmbientSoundId, SubjectItem } from '../types/konkur';
 import { toPersianDigits } from '../utils/jalali';
@@ -55,7 +55,11 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   onOpenSounds,
   currentSound,
 }) => {
-  const persisted = useMemo(() => readPersistedFocusTimer(), []);
+  const persisted = useMemo(() => {
+    const saved = readPersistedFocusTimer();
+    if (saved && !saved.isActive && saved.selectedPresetIndex === 0 && (saved.totalWorkMinutes !== workMinutes || saved.totalBreakMinutes !== breakMinutes)) return null;
+    return saved;
+  }, [workMinutes, breakMinutes]);
   const restoredRef = useRef(Boolean(persisted));
   // اولین گزینه همیشه تنظیم دلخواه خودِ کاربر است
   const PRESETS = useMemo(() => {
@@ -86,6 +90,8 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   const [totalBreakMinutes, setTotalBreakMinutes] = useState(persisted?.totalBreakMinutes ?? breakMinutes);
   const [secondsRemaining, setSecondsRemaining] = useState(persisted?.secondsRemaining ?? workMinutes * 60);
   const [isActive, setIsActive] = useState(persisted?.isActive ?? false);
+  const [subjectPickerOpen, setSubjectPickerOpen] = useState(false);
+  const [subjectQuery, setSubjectQuery] = useState('');
 
   // Subject choice
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(() => {
@@ -218,8 +224,9 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   };
 
   const applyPreset = (idx: number) => {
-    setSelectedPresetIndex(idx);
     const p = PRESETS[idx];
+    if (!p) return;
+    setSelectedPresetIndex(idx);
     setTotalWorkMinutes(p.work);
     setTotalBreakMinutes(p.break);
     setIsActive(false);
@@ -260,6 +267,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
         <button
           onClick={() => {
             setIsActive(false);
+            endTimeRef.current = null;
             setMode('work');
             setSecondsRemaining(totalWorkMinutes * 60);
           }}
@@ -274,6 +282,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
         <button
           onClick={() => {
             setIsActive(false);
+            endTimeRef.current = null;
             setMode('break');
             setSecondsRemaining(totalBreakMinutes * 60);
           }}
@@ -310,20 +319,19 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
           <div className="flex items-center gap-2">
             <span className="focus-subject-icon"><BookOpen /></span><span className="focus-subject-label">درس هدف</span>
           </div>
-          <select
-            value={selectedSubjectId}
-            onChange={(e) => setSelectedSubjectId(e.target.value)}
-            disabled={isActive}
-            className="focus-subject-select"
-          >
-            {subjects.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+          <button type="button" className="focus-subject-select" disabled={isActive} onClick={()=>setSubjectPickerOpen(true)}>
+            <span>{activeSubject?.name || 'انتخاب درس'}</span><ChevronDown />
+          </button>
         </div>
       </div>
+
+      {subjectPickerOpen && <div className="subject-picker-shell" role="dialog" aria-modal="true" onClick={()=>setSubjectPickerOpen(false)}>
+        <div className="subject-picker" onClick={e=>e.stopPropagation()}>
+          <header><div><BookOpen/><span><b>درس هدف</b><small>برای این جلسه یک درس انتخاب کن</small></span></div><button onClick={()=>setSubjectPickerOpen(false)} aria-label="بستن"><X/></button></header>
+          <label><Search/><input value={subjectQuery} onChange={e=>setSubjectQuery(e.target.value)} placeholder="جست‌وجوی درس..." autoFocus /></label>
+          <div className="subject-picker-list">{subjects.filter(s=>s.name.includes(subjectQuery.trim())).map((s,i)=><button key={s.id} className={selectedSubjectId===s.id?'selected':''} style={{'--subject-color':s.color,'--i':i} as React.CSSProperties} onClick={()=>{setSelectedSubjectId(s.id);setSubjectPickerOpen(false);setSubjectQuery('')}}><i/><span>{s.name}</span>{selectedSubjectId===s.id?<Check/>:<ChevronDown/>}</button>)}</div>
+        </div>
+      </div>}
 
       {/* Giant Circular Timer Dial */}
       <div className={`focus-dial-wrap ${isActive ? 'is-running' : ''}`}>

@@ -18,7 +18,7 @@ interface TaskPomodoroPanelProps {
 }
 
 type Phase = 'work' | 'break' | 'done';
-type PersistedTaskTimer = { phase: Phase; blockSeconds: number; secondsLeft: number; isRunning: boolean; loggedMinutes: number; cycle: number; target: number; endTime: number | null };
+type PersistedTaskTimer = { phase: Phase; blockSeconds: number; secondsLeft: number; isRunning: boolean; loggedMinutes: number; cycle: number; target: number; workMinutes: number; breakMinutes: number; endTime: number | null };
 const taskTimerKey = (taskId: string) => `konkur_task_pomodoro_v1_${taskId}`;
 const readTaskTimer = (taskId: string): PersistedTaskTimer | null => { try { const raw = localStorage.getItem(taskTimerKey(taskId)); return raw ? JSON.parse(raw) as PersistedTaskTimer : null; } catch { return null; } };
 const saveTaskTimer = (taskId: string, value: PersistedTaskTimer | null) => { try { if (value) localStorage.setItem(taskTimerKey(taskId), JSON.stringify(value)); else localStorage.removeItem(taskTimerKey(taskId)); } catch {} };
@@ -65,7 +65,7 @@ export const TaskPomodoroPanel: React.FC<TaskPomodoroPanelProps> = ({
     const target = Math.max(1, remainingMinutes);
     const first = Math.min(work, target);
     const saved = task ? readTaskTimer(task.id) : null;
-    if (saved && saved.phase !== 'done') {
+    if (saved && saved.phase !== 'done' && saved.workMinutes === work && saved.breakMinutes === rest && saved.target === target) {
       restoreRef.current = true;
       targetRef.current = saved.target;
       loggedRef.current = saved.loggedMinutes;
@@ -92,7 +92,7 @@ export const TaskPomodoroPanel: React.FC<TaskPomodoroPanelProps> = ({
 
   useEffect(() => {
     if (!task || !isOpen || restoreRef.current) { restoreRef.current = false; return; }
-    saveTaskTimer(task.id, { phase, blockSeconds, secondsLeft, isRunning, loggedMinutes, cycle, target: targetRef.current, endTime: endRef.current });
+    saveTaskTimer(task.id, { phase, blockSeconds, secondsLeft, isRunning, loggedMinutes, cycle, target: targetRef.current, workMinutes: work, breakMinutes: rest, endTime: endRef.current });
   }, [task, isOpen, phase, blockSeconds, secondsLeft, isRunning, loggedMinutes, cycle]);
 
   const celebrate = () => {

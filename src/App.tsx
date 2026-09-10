@@ -98,6 +98,7 @@ export default function App() {
   const [notes, setNotes] = useState<NoteItem[]>([]);
 
   const [currentTab, setCurrentTab] = useState<NavTab>('home');
+  const navigationStackRef = useRef<NavTab[]>([]);
   const [preselectedFocusSubject, setPreselectedFocusSubject] = useState<string | undefined>();
 
   const [isArcMenuOpen, setIsArcMenuOpen] = useState(false);
@@ -195,7 +196,7 @@ export default function App() {
       const isDoubleBack = now - lastBackPressRef.current < 1500;
       lastBackPressRef.current = now;
 
-      if (isQuickMenuOpen || isArcMenuOpen || isSettingsOpen || isProfileOpen || isSoundsOpen || isManualLogOpen || isBackupOpen || isAboutOpen) {
+      if (isQuickMenuOpen || isArcMenuOpen || isSettingsOpen || isProfileOpen || isSoundsOpen || isManualLogOpen || isBackupOpen || isAboutOpen || isNotesOpen) {
         setIsQuickMenuOpen(false);
         setIsArcMenuOpen(false);
         setIsSettingsOpen(false);
@@ -204,18 +205,21 @@ export default function App() {
         setIsManualLogOpen(false);
         setIsBackupOpen(false);
         setIsAboutOpen(false);
+        setIsNotesOpen(false);
         return;
       }
       if (isResetConfirmOpen || isExitConfirmOpen) return;
       if (currentTab !== 'home') {
-        goToTab('home');
+        const previous = navigationStackRef.current.pop() ?? 'home';
+        setCurrentTab(previous);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
       if (isDoubleBack) setIsExitConfirmOpen(true);
     };
     window.addEventListener('popstate', onBack);
     return () => window.removeEventListener('popstate', onBack);
-  }, [currentTab, isQuickMenuOpen, isArcMenuOpen, isSettingsOpen, isProfileOpen, isSoundsOpen, isManualLogOpen, isBackupOpen, isAboutOpen, isResetConfirmOpen, isExitConfirmOpen]);
+  }, [currentTab, isQuickMenuOpen, isArcMenuOpen, isSettingsOpen, isProfileOpen, isSoundsOpen, isManualLogOpen, isBackupOpen, isAboutOpen, isNotesOpen, isResetConfirmOpen, isExitConfirmOpen]);
 
   // صدای محیط را با بسته شدن برنامه رها کن
   useEffect(() => () => soundEngine.stop(), []);
@@ -242,7 +246,8 @@ export default function App() {
         description: pending
           .slice(0, 3)
           .map((t) => `${t.startTime} · ${t.subjectName}`)
-          .join(' — '),
+          .join('، '),
+        targetTab: 'planner',
       });
     }
 
@@ -251,6 +256,7 @@ export default function App() {
         id: `exam-${upcomingExam.id}`,
         title: `آزمون نزدیک: ${upcomingExam.title}`,
         description: `تاریخ ${upcomingExam.dateJalali}`,
+        targetTab: 'exams',
       });
     }
 
@@ -259,6 +265,7 @@ export default function App() {
         id: 'daily-goal',
         title: 'هدف امروز کامل نشده',
         description: `${Math.max(0, profile.dailyGoalMinutes - stats.todayMinutes)} دقیقه تا هدف روزانه`,
+        targetTab: 'progress',
       });
     }
 
@@ -455,6 +462,10 @@ export default function App() {
   };
 
   const goToTab = (tab: NavTab) => {
+    if (tab !== currentTab) {
+      if (tab === 'home') navigationStackRef.current = [];
+      else navigationStackRef.current.push(currentTab);
+    }
     setCurrentTab(tab);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -491,6 +502,7 @@ export default function App() {
         notifications={notifications}
         onOpenMenu={() => setIsArcMenuOpen(true)}
         onOpenHome={() => goToTab('home')}
+        onNotificationClick={(item) => goToTab(item.targetTab)}
       />
 
       {/* هدر و نوار پایین شناورند؛ فاصله‌ی امن بالا و پایین برای محتوا لازم است */}
@@ -507,8 +519,6 @@ export default function App() {
               onOpenDatePicker={() => setIsSettingsOpen(true)}
             />
 
-            <HomeUpdates />
-
             <StatCards
               todayStudyMinutes={stats.todayMinutes}
               dailyGoalMinutes={profile.dailyGoalMinutes}
@@ -519,6 +529,8 @@ export default function App() {
                 else goToTab('progress');
               }}
             />
+
+            <HomeUpdates />
 
             <UpcomingExamCard exam={upcomingExam} onViewAllExams={() => goToTab('exams')} />
 

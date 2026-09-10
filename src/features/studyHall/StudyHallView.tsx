@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { SubjectItem } from '../../types/konkur';
 import { LOCAL_STUDENT_ID, localStudyHallRepository } from './repository';
-import { QrValidationResult, Seat, SeatStatus, StudyHallSession, StudyHallSnapshot } from './types';
+import { QrValidationResult, Seat, SeatStatus, StudyHallLocation, StudyHallSession, StudyHallSnapshot } from './types';
 
 type Experience = 'virtual' | 'physical';
 type PhysicalView = 'student' | 'manager';
@@ -44,6 +44,8 @@ export const StudyHallView: React.FC<Props> = ({ subjects, dailyGoalMinutes, tod
   const [scanMessage, setScanMessage] = useState('');
   const [validatedQr, setValidatedQr] = useState<QrValidationResult | null>(null);
   const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
+  const [locations, setLocations] = useState<StudyHallLocation[]>([]);
+  const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanFrameRef = useRef<number | null>(null);
@@ -60,7 +62,7 @@ export const StudyHallView: React.FC<Props> = ({ subjects, dailyGoalMinutes, tod
     }
   };
 
-  useEffect(() => { void reload(); }, []);
+  useEffect(() => { void reload(); void localStudyHallRepository.listLocations().then(setLocations); }, []);
   useEffect(() => {
     if (!subjects.some(s => s.id === subjectId)) setSubjectId(subjects[0]?.id ?? '');
   }, [subjects, subjectId]);
@@ -88,6 +90,7 @@ export const StudyHallView: React.FC<Props> = ({ subjects, dailyGoalMinutes, tod
   const occupied = snapshot?.seats.filter(s => s.status === 'occupied').length ?? 0;
   const available = snapshot?.seats.filter(s => ['available', 'my-seat'].includes(s.status)).length ?? 0;
   const mySeat = snapshot?.seats.find(s => s.assignedStudentId === LOCAL_STUDENT_ID);
+  const selectLocation = async (location: StudyHallLocation) => { setSnapshot(await localStudyHallRepository.selectLocation(location.branch.id, location.hall.id)); setLocationPickerOpen(false); setSelectedSeat(null); };
 
   const startSession = async (mode: Experience, qr?: QrValidationResult) => {
     if (!selectedSubject) return;
@@ -215,7 +218,7 @@ export const StudyHallView: React.FC<Props> = ({ subjects, dailyGoalMinutes, tod
     {experience === 'virtual' && <VirtualRooms subjects={subjects} selectedSubjectId={subjectId} onSubjectChange={setSubjectId} onStart={() => void startSession('virtual')} />}
 
     {experience === 'physical' && physicalView === 'student' && <div className="hall-physical-student">
-      <div className="hall-location-line"><div><span><Building2 /></span><p><b>{snapshot.branch.name}</b><small>{snapshot.hall.name}، {snapshot.sections[0].floorName}</small></p></div><button>تغییر <ChevronLeft /></button></div>
+      <div className="hall-location-line"><div><span><Building2 /></span><p><b>{snapshot.branch.name}</b><small>{snapshot.hall.name}، {snapshot.sections[0].floorName}</small></p></div><button onClick={() => setLocationPickerOpen(true)}>تغییر <ChevronLeft /></button></div>
       {mySeat && <div className="hall-my-seat"><div><span>صندلی ثابت من</span><strong>{fa(mySeat.number)}</strong></div><p>{snapshot.sections[0].name}<small>آماده برای ورود</small></p><Armchair /></div>}
       <button className="hall-scan-action" onClick={openScanner}><span><ScanLine /></span><div><strong>اسکن QR صندلی</strong><small>ورود و شروع نشست حضوری</small></div><ChevronLeft /></button>
       <div className="hall-capacity"><div><b>{fa(available)}</b><span>صندلی آزاد</span></div><div className="hall-capacity-track"><i style={{ transform: `scaleX(${occupied / Math.max(1, snapshot.seats.length)})` }} /></div><div><b>{fa(occupied)}</b><span>در حال مطالعه</span></div></div>
@@ -224,6 +227,8 @@ export const StudyHallView: React.FC<Props> = ({ subjects, dailyGoalMinutes, tod
     </div>}
 
     {experience === 'physical' && physicalView === 'manager' && <ManagerHall snapshot={snapshot} selectedSeat={selectedSeat} setSelectedSeat={setSelectedSeat} onUpdated={reload} />}
+
+    {locationPickerOpen && <div className="hall-sheet-shell" role="dialog" aria-modal="true" onClick={() => setLocationPickerOpen(false)}><div className="hall-sheet location-picker" onClick={e => e.stopPropagation()}><header><div><span>انتخاب محل مطالعه</span><small>شعبه و پانسیون موردنظرت را انتخاب کن</small></div><button onClick={() => setLocationPickerOpen(false)}><X /></button></header><div className="location-options">{locations.map(location => <button key={location.hall.id} className={snapshot.branch.id === location.branch.id && snapshot.hall.id === location.hall.id ? 'selected' : ''} onClick={() => void selectLocation(location)}><span><Building2 /></span><div><b>{location.branch.name}</b><small>{location.hall.name}، {location.branch.address}</small><em>{location.hall.opensAt} تا {location.hall.closesAt}</em></div><ChevronLeft /></button>)}</div></div></div>}
 
     {(scanState !== 'idle' || validatedQr) && <div className="hall-sheet-shell" role="dialog" aria-modal="true">
       <div className="hall-sheet">
@@ -256,7 +261,9 @@ const VirtualRooms: React.FC<{ subjects: SubjectItem[]; selectedSubjectId: strin
   const [query, setQuery] = useState('');
   const [room, setRoom] = useState<VirtualRoom | null>(null);
   const [requested, setRequested] = useState(false);
-  const visibleRooms = virtualRooms.filter(item => mode === 'all' || item.id === 'deep').filter(item => `${item.title} ${item.category}`.includes(query.trim()));
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [roomFilter, setRoomFilter] = useState<'all' | 'quiet' | 'open'>('all');
+  const visibleRooms = virtualRooms.filter(item => mode === 'all' || item.id === 'deep').filter(item => roomFilter === 'all' || (roomFilter === 'quiet' ? item.category.includes('سکوت') || item.category.includes('آرام') : !item.private)).filter(item => `${item.title} ${item.category}`.includes(query.trim()));
   if (room) return <div className="virtual-room-detail">
     <button className="virtual-back" onClick={() => { setRoom(null); setRequested(false); }}><ArrowRight /><span>بازگشت به اتاق‌ها</span></button>
     <div className={`virtual-profile-hero ${room.pattern}`}><div className="virtual-hero-actions"><button><ShieldCheck /></button><button><ChevronLeft /></button></div><div className="virtual-room-avatar">{room.avatar}<i><Trophy /></i></div><span className="virtual-handle">{room.handle}</span><h2>{room.title}</h2><div className="virtual-profile-tabs"><button className="active">جزئیات</button><button>اتاق مطالعه</button><button>رتبه‌بندی</button></div></div>
@@ -267,9 +274,9 @@ const VirtualRooms: React.FC<{ subjects: SubjectItem[]; selectedSubjectId: strin
     {requested?<div className="virtual-requested"><Check/><span><b>درخواستت ثبت شد</b><small>با تأیید مدیر اتاق، ورود برایت باز می‌شود.</small></span></div>:<button className="hall-primary-action virtual-join" onClick={()=>room.private?setRequested(true):onStart()}>{room.private?<><LockKeyhole/> درخواست عضویت</>:<><Play/> ورود و شروع مطالعه</>}</button>}
   </div>;
   return <div className="virtual-rooms" dir="rtl">
-    <div className="virtual-room-heading"><div><span><Sparkles /> تمرکز اجتماعی، بدون شلوغی</span><h2>اتاق‌های مطالعه</h2></div><div className="virtual-heading-actions"><button><Filter /></button><button><BellIcon /></button></div></div>
+    <div className="virtual-room-heading"><div><span><Sparkles /> تمرکز اجتماعی، بدون شلوغی</span><h2>اتاق‌های مطالعه</h2></div><div className="virtual-heading-actions"><button className={filtersOpen ? 'active' : ''} onClick={() => setFiltersOpen(v => !v)}><Filter /></button><button><BellIcon /></button></div></div>
     <label className="virtual-search"><Search /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="جست‌وجوی اتاق، سازنده..." /></label>
-    <div className="virtual-tabs"><button className={mode === 'all' ? 'active' : ''} onClick={() => setMode('all')}><Users /> همه اتاق‌ها</button><button className={mode === 'mine' ? 'active' : ''} onClick={() => setMode('mine')}><ShieldCheck /> اتاق‌های من</button></div>
+    <div className="virtual-filter-row">{filtersOpen && <><button className={roomFilter==='all'?'active':''} onClick={()=>setRoomFilter('all')}>همه</button><button className={roomFilter==='quiet'?'active':''} onClick={()=>setRoomFilter('quiet')}>آرام</button><button className={roomFilter==='open'?'active':''} onClick={()=>setRoomFilter('open')}>عمومی</button></>}</div><div className="virtual-tabs"><button className={mode === 'all' ? 'active' : ''} onClick={() => setMode('all')}><Users /> همه اتاق‌ها</button><button className={mode === 'mine' ? 'active' : ''} onClick={() => setMode('mine')}><ShieldCheck /> اتاق‌های من</button></div>
     <div className="virtual-featured"><div className="virtual-featured-pattern"><Trophy /></div><div><span>پیشنهاد امروز پازل</span><strong>اتاق‌های پرتلاش‌ها</strong><small>با آدم‌هایی که همین حالا مشغول‌اند همراه شو</small></div><ChevronLeft /></div>
     <div className="virtual-list-heading"><div><span>اتاق‌های مطالعه کاربران</span><small>{fa(visibleRooms.length)} اتاق فعال</small></div><button>مرتب‌سازی <ChevronLeft /></button></div>
     <div className="virtual-room-list">{visibleRooms.map(item => <button key={item.id} className={`virtual-room-card ${item.accent} ${item.pattern}`} onClick={() => setRoom(item)}><div className="virtual-card-art"><span className="virtual-card-avatar">{item.avatar}</span><span className="virtual-card-handle">{item.handle}</span>{item.private && <LockKeyhole />}</div><div className="virtual-card-body"><div><strong>{item.title}</strong><small>{item.category}</small></div><span className="virtual-card-score">{fa(item.members)} | {fa(item.capacity)}</span></div><div className="virtual-card-foot"><span><i /> {fa(item.members)} نفر در حال مطالعه</span><span><MessageCircle /> گفتگو</span></div></button>)}</div>
@@ -287,6 +294,6 @@ const ManagerHall: React.FC<{ snapshot: StudyHallSnapshot; selectedSeat: Seat | 
     <div className="hall-map-legend">{(['available','occupied','reserved','maintenance'] as SeatStatus[]).map(s => <span key={s}><i className={s} />{seatLabels[s]}</span>)}</div>
     <div className="hall-live-map"><span className="hall-map-door">ورودی</span>{snapshot.seats.map(seat => <button key={seat.id} className={`${seat.status} ${selectedSeat?.id === seat.id ? 'selected' : ''}`} onClick={() => setSelectedSeat(seat)}><Armchair /><b>{fa(seat.number)}</b>{seat.status === 'occupied' && <i />}</button>)}</div>
     {selectedSeat && <div className="hall-seat-inspector"><header><div><span>صندلی {fa(selectedSeat.number)}</span><small>{seatLabels[selectedSeat.status]}</small></div><button onClick={() => setSelectedSeat(null)}><X /></button></header>{selectedSeat.occupantName ? <div className="hall-occupant"><UserRound /><p><b>{selectedSeat.occupantName}</b><small>ورود {fa(selectedSeat.checkedInAt ?? '')}، {selectedSeat.subjectName}</small></p></div> : <p className="hall-seat-empty">این صندلی کاربر فعال ندارد.</p>}<div className="hall-seat-actions"><button onClick={() => void setStatus(selectedSeat.status === 'maintenance' ? 'available' : 'maintenance')}><Wrench />{selectedSeat.status === 'maintenance' ? 'فعال‌سازی' : 'تعمیرات'}</button><button onClick={regenerate}><QrCode />QR جدید</button></div></div>}
-    <p className="hall-manager-note"><BarChart3 /> تغییرات نقشه در Repository ذخیره می‌شوند و آماده اتصال به API هستند.</p>
+    <p className="hall-manager-note"><BarChart3 /> تغییرات نقشه روی همین دستگاه ذخیره می‌شوند و با انتخاب محل جدید قابل بازیابی‌اند.</p>
   </div>;
 };

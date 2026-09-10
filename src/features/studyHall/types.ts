@@ -19,8 +19,11 @@ export interface QrValidationResult {
   message: string; organization?: Organization; branch?: Branch; hall?: StudyHall; section?: HallSection; seat?: Seat; qr?: SeatQr;
 }
 export interface StudyHallSnapshot { organization: Organization; branch: Branch; hall: StudyHall; sections: HallSection[]; seats: Seat[]; sessions: StudyHallSession[]; }
+export interface StudyHallLocation { organization: Organization; branch: Branch; hall: StudyHall; sections: HallSection[]; }
 export interface StudyHallRepository {
   getSnapshot(): Promise<StudyHallSnapshot>;
+  listLocations(): Promise<StudyHallLocation[]>;
+  selectLocation(branchId: string, hallId: string): Promise<StudyHallSnapshot>;
   validateQr(context: QrValidationContext): Promise<QrValidationResult>;
   saveSession(session: StudyHallSession): Promise<StudyHallSession>;
   updateSeat(seat: Seat): Promise<Seat>;

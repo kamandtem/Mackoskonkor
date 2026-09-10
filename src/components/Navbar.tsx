@@ -9,15 +9,15 @@ interface NavbarProps {
 }
 
 /**
- * نوار پایین فقط چهار بخش اصلی را نگه می‌دارد.
- * آیکن «بیشتر» حذف شد؛ بقیه‌ی بخش‌ها از منوی هدر (عکس کاربر) در دسترس‌اند.
+ * نوار پایین شناور به سبک کپسول کشیده + دکمه‌ی گرد شناور (FAB).
+ * آیتم فعال به شکل قرص سفید برجسته با آیکن و برچسب نمایش داده می‌شود.
  */
 export const Navbar: React.FC<NavbarProps> = ({
   currentTab,
   onSelectTab,
   onOpenQuickAction,
 }) => {
-  const tabs: { id: NavTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  const navItems: { id: NavTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'home', label: 'خانه', icon: Home },
     { id: 'planner', label: 'برنامه', icon: Calendar },
     { id: 'focus', label: 'تمرکز', icon: Clock },
@@ -25,44 +25,52 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 pointer-events-none flex justify-center pb-3 px-4">
-      <div className="pointer-events-auto bg-white/95 backdrop-blur-md rounded-[28px] border border-white/80 shadow-[0_12px_36px_rgba(100,116,139,0.18),0_2px_8px_rgba(100,116,139,0.06)] px-3 py-2 flex items-center justify-between w-full max-w-md">
-        {tabs.map((t) => {
-          const isActive = currentTab === t.id;
-          const Icon = t.icon;
+    <nav className="fixed bottom-0 left-0 right-0 z-30 pointer-events-none flex justify-center pb-4 px-4">
+      <div className="pointer-events-auto flex items-center gap-3 w-full max-w-md justify-between">
+        {/* کپسول نرم و کشیده با چهار بخش اصلی */}
+        <div className="flex-1 bg-[#ededf0]/90 backdrop-blur-md rounded-full p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.08),0_2px_6px_rgba(0,0,0,0.03)] border border-white/80 flex items-center justify-between">
+          {navItems.map((item) => {
+            const isActive = currentTab === item.id;
+            const Icon = item.icon;
 
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => onSelectTab(t.id)}
-              className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all relative ${
-                isActive ? 'text-indigo-600 font-black' : 'text-slate-400 font-medium'
-              }`}
-            >
-              <div
-                className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-all ${
-                  isActive ? 'bg-indigo-50 text-indigo-600' : 'bg-transparent text-slate-400'
-                }`}
+            if (isActive) {
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => onSelectTab(item.id)}
+                  className="bg-white text-slate-900 rounded-full px-4 py-2.5 flex items-center gap-2 shadow-[0_2px_10px_rgba(0,0,0,0.07)] border border-slate-100/60 font-black text-xs transition-all"
+                >
+                  <Icon className="w-4 h-4 stroke-[2.5]" />
+                  <span className="whitespace-nowrap">{item.label}</span>
+                </button>
+              );
+            }
+
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onSelectTab(item.id)}
+                title={item.label}
+                aria-label={item.label}
+                className="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-800 active:scale-90 transition-all"
               >
-                <Icon className="w-5 h-5" />
-              </div>
-              <span className="text-[10px] mt-0.5 whitespace-nowrap">{t.label}</span>
-              {isActive && (
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 -bottom-1 absolute" />
-              )}
-            </button>
-          );
-        })}
+                <Icon className="w-5 h-5 stroke-[2]" />
+              </button>
+            );
+          })}
+        </div>
 
+        {/* دکمه‌ی گرد مرجانی عملیات سریع */}
         <button
           type="button"
           onClick={onOpenQuickAction}
           title="عملیات سریع"
           aria-label="عملیات سریع"
-          className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-md shadow-indigo-300 hover:scale-105 active:scale-95 transition-all ml-1 shrink-0"
+          className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#ff4d4f] hover:bg-[#ff383b] text-white flex items-center justify-center shadow-[0_10px_25px_rgba(255,77,79,0.38)] active:scale-95 transition-all shrink-0"
         >
-          <Plus className="w-5 h-5 stroke-[2.8px]" />
+          <Plus className="w-6 h-6 stroke-[3]" />
         </button>
       </div>
     </nav>

@@ -46,6 +46,7 @@ import { soundEngine } from './utils/soundEngine';
 
 import { AboutModal } from './components/AboutModal';
 import { AmbientSoundModal } from './components/AmbientSoundModal';
+import { ArcWheelMenu } from './components/ArcWheelMenu';
 import { BackupModal } from './components/BackupModal';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { CountdownDial } from './components/CountdownDial';
@@ -87,6 +88,7 @@ export default function App() {
   const [preselectedFocusSubject, setPreselectedFocusSubject] = useState<string | undefined>();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isArcMenuOpen, setIsArcMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSoundsOpen, setIsSoundsOpen] = useState(false);
   const [isQuickActionOpen, setIsQuickActionOpen] = useState(false);
@@ -313,9 +315,18 @@ export default function App() {
   /* ---------------------------------------------------------------- */
   return (
     <div className="min-h-screen bg-[#f2f5f9] text-slate-800 flex flex-col justify-between max-w-md mx-auto shadow-2xl relative overflow-x-hidden">
-      <Header profile={profile} streak={stats.streak} onOpenMenu={() => setIsMenuOpen(true)} />
+      <Header
+        profile={profile}
+        streak={stats.streak}
+        onOpenMenu={() => setIsMenuOpen(true)}
+        onOpenArcMenu={() => setIsArcMenuOpen(true)}
+        onOpenSounds={() => setIsSoundsOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        activeSoundName={currentSound !== 'none' ? currentSound : undefined}
+      />
 
-      <main className="flex-1 pb-24 overflow-y-auto no-scrollbar">
+      {/* هدر و نوار پایین شناورند؛ فاصله‌ی بالا و پایین برای محتوا لازم است */}
+      <main className="flex-1 pt-22 pb-28 overflow-y-auto no-scrollbar">
         {currentTab === 'home' && (
           <div className="flex flex-col animate-in fade-in duration-200">
             <CountdownDial
@@ -417,6 +428,15 @@ export default function App() {
         currentTab={currentTab}
         onSelectTab={goToTab}
         onOpenQuickAction={() => setIsQuickActionOpen(true)}
+      />
+
+      {/* منوی قوسی — با دکمه‌ی قطب‌نما در هدر باز می‌شود */}
+      <ArcWheelMenu
+        isOpen={isArcMenuOpen}
+        onClose={() => setIsArcMenuOpen(false)}
+        onNavigateTab={goToTab}
+        onStartFocusSubject={handleStartFocusSubject}
+        onOpenSounds={() => setIsSoundsOpen(true)}
       />
 
       {/* منوی اصلی — با لمس عکس کاربر در هدر باز می‌شود */}

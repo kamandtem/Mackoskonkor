@@ -96,7 +96,6 @@ export default function App() {
   const [isSoundsOpen, setIsSoundsOpen] = useState(false);
   const [isQuickActionOpen, setIsQuickActionOpen] = useState(false);
   const [isManualLogOpen, setIsManualLogOpen] = useState(false);
-  const [isManualLogOpen, setIsManualLogOpen] = useState(false);
   const [isBackupOpen, setIsBackupOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);

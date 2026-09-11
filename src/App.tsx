@@ -46,6 +46,7 @@ import {
   tasksForDay,
 } from './utils/stats';
 import { soundEngine } from './utils/soundEngine';
+import { celebrateAchievement } from './utils/celebration';
 
 import { applyTheme, loadTheme, saveTheme, ThemeMode } from './utils/theme';
 
@@ -69,7 +70,6 @@ import { ReportCardView } from './components/ReportCardView';
 import { QuickActionMenu } from './components/QuickActionMenu';
 import { SettingsModal } from './components/SettingsModal';
 import { SpeedDrillView } from './components/SpeedDrillView';
-import { StatCards } from './components/StatCards';
 import { UpcomingExamCard } from './components/UpcomingExamCard';
 import { StudyHallView } from './features/studyHall/StudyHallView';
 import { StudyScheduleView } from './components/StudyScheduleView';
@@ -343,6 +343,7 @@ export default function App() {
               : t,
           ),
         );
+        celebrateAchievement({ title: 'کار انجام شد', message: `${task.subjectName} با موفقیت به پایان رسید.`, notify: profile.notificationsEnabled, intensity: 'small' });
         return;
       }
 
@@ -350,7 +351,7 @@ export default function App() {
         prev.map((t) => (t.id === taskId ? { ...t, isCompleted: false } : t)),
       );
     },
-    [tasks, recordSession],
+    [tasks, recordSession, profile.notificationsEnabled],
   );
 
   /** ثبت دقیقه‌های تایمر یا پومودورو روی یک ردیف برنامه */
@@ -527,16 +528,11 @@ export default function App() {
               progressPercent={progressPercent}
               examName={profile.examName}
               dailyGoalMinutes={profile.dailyGoalMinutes}
-              onStartFocus={() => goToTab('focus')}
-              onOpenDatePicker={() => setIsSettingsOpen(true)}
-            />
-
-            <StatCards
               todayStudyMinutes={stats.todayMinutes}
-              dailyGoalMinutes={profile.dailyGoalMinutes}
               streakDays={stats.streak}
               goalPct={stats.goalPct}
-              onCardClick={(card) => {
+              onOpenDatePicker={() => setIsSettingsOpen(true)}
+              onStatClick={(card) => {
                 if (card === 'goal') setIsSettingsOpen(true);
                 else goToTab('progress');
               }}

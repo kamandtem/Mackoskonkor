@@ -1,0 +1,170 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920" role="img" aria-labelledby="title desc">
+<title id="title">مسیر پیشرفت کوهستانی</title>
+<desc id="desc">وکتور کوهستان و مسیر پیشرفت بدون نوشته‌های داخلی</desc>
+<defs>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="oklch(94% .025 245)"/>
+    <stop offset=".46" stop-color="oklch(91% .045 200)"/>
+    <stop offset="1" stop-color="oklch(73% .095 210)"/>
+  </linearGradient>
+  <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+    <stop offset="0" stop-color="oklch(98% .08 92)" stop-opacity=".95"/>
+    <stop offset=".3" stop-color="oklch(92% .12 72)" stop-opacity=".4"/>
+    <stop offset="1" stop-color="oklch(86% .08 55)" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="farMountain" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="oklch(72% .07 190)"/>
+    <stop offset="1" stop-color="oklch(51% .08 230)"/>
+  </linearGradient>
+  <linearGradient id="mainMountain" x1=".1" y1=".05" x2=".9" y2=".95">
+    <stop offset="0" stop-color="oklch(66% .105 178)"/>
+    <stop offset=".48" stop-color="oklch(52% .11 207)"/>
+    <stop offset="1" stop-color="oklch(33% .11 258)"/>
+  </linearGradient>
+  <linearGradient id="litFace" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="oklch(78% .11 165)"/>
+    <stop offset="1" stop-color="oklch(56% .08 201)" stop-opacity=".12"/>
+  </linearGradient>
+  <linearGradient id="shadowFace" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="oklch(44% .11 225)" stop-opacity=".22"/>
+    <stop offset="1" stop-color="oklch(25% .10 274)" stop-opacity=".88"/>
+  </linearGradient>
+  <linearGradient id="road" x1="0" y1="1" x2=".75" y2="0">
+    <stop offset="0" stop-color="oklch(91% .045 315)"/>
+    <stop offset=".26" stop-color="oklch(94% .055 205)"/>
+    <stop offset=".52" stop-color="oklch(94% .075 155)"/>
+    <stop offset=".77" stop-color="oklch(96% .07 82)"/>
+    <stop offset="1" stop-color="oklch(97% .035 67)"/>
+  </linearGradient>
+  <linearGradient id="roadEdge" x1="0" y1="1" x2="1" y2="0">
+    <stop offset="0" stop-color="oklch(72% .08 300)"/>
+    <stop offset=".5" stop-color="oklch(78% .09 180)"/>
+    <stop offset="1" stop-color="oklch(84% .11 75)"/>
+  </linearGradient>
+  <linearGradient id="nav" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="oklch(26% .08 260)"/>
+    <stop offset="1" stop-color="oklch(31% .10 244)"/>
+  </linearGradient>
+  <filter id="blur48" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="48"/></filter>
+  <filter id="blur18" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="18"/></filter>
+  <filter id="nodeShadow" x="-80%" y="-80%" width="260%" height="260%">
+    <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="oklch(22% .08 255)" flood-opacity=".2"/>
+  </filter>
+  <filter id="softTexture" x="-10%" y="-10%" width="120%" height="120%">
+    <feTurbulence type="fractalNoise" baseFrequency=".009 .02" numOctaves="3" seed="21" result="n"/>
+    <feColorMatrix in="n" type="saturate" values="0"/>
+    <feComponentTransfer><feFuncA type="table" tableValues="0 .07"/></feComponentTransfer>
+  </filter>
+  <clipPath id="mountainClip"><path d="M0 1590V1120C125 1037 150 891 239 702C326 516 433 390 540 273C671 407 775 535 842 714C917 915 941 1043 1080 1129V1590Z"/></clipPath>
+  <style>
+    .fa{font-family:Tahoma,"Segoe UI",Arial,sans-serif;direction:rtl;unicode-bidi:bidi-override}
+    .num{font-family:"Segoe UI",Arial,sans-serif;font-variant-numeric:tabular-nums}
+    .label{fill:oklch(27% .055 245);font-size:24px;font-weight:700}
+    .small{fill:oklch(43% .055 238);font-size:16px;font-weight:600;letter-spacing:.02em}
+    .icon{fill:none;stroke:oklch(34% .08 245);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+  </style>
+</defs>
+
+<!-- sky -->
+<rect width="1080" height="1920" fill="url(#sky)"/>
+<circle cx="540" cy="264" r="230" fill="url(#sunGlow)"/>
+<g fill="oklch(98% .015 240)" opacity=".48">
+  <ellipse cx="195" cy="286" rx="118" ry="25"/><ellipse cx="282" cy="267" rx="76" ry="18"/>
+  <ellipse cx="823" cy="364" rx="130" ry="27"/><ellipse cx="905" cy="340" rx="67" ry="17"/>
+</g>
+
+<!-- distant ranges -->
+<path d="M0 955L0 800L137 687L228 752L341 598L457 753L558 641L679 758L807 621L1080 849V1090Z" fill="url(#farMountain)" opacity=".35"/>
+<path d="M0 1057L0 898L159 780L293 864L421 729L563 852L711 696L851 842L972 740L1080 826V1110Z" fill="oklch(60% .07 215)" opacity=".24"/>
+
+<!-- main mountain -->
+<path d="M0 1590V1120C125 1037 150 891 239 702C326 516 433 390 540 273C671 407 775 535 842 714C917 915 941 1043 1080 1129V1590Z" fill="url(#mainMountain)"/>
+<path d="M0 1590V1120C125 1037 150 891 239 702C326 516 433 390 540 273C488 481 439 623 329 783C232 925 265 1162 364 1590Z" fill="url(#litFace)"/>
+<path d="M540 273C671 407 775 535 842 714C917 915 941 1043 1080 1129V1590H632C756 1389 714 1164 664 976C613 783 668 564 540 273Z" fill="url(#shadowFace)"/>
+<path d="M560 407C703 574 704 743 747 918C794 1110 909 1270 1080 1322V1590H831C768 1368 716 1211 641 1054C572 908 571 683 560 407Z" fill="oklch(24% .09 267)" opacity=".18"/>
+<rect width="1080" height="1590" clip-path="url(#mountainClip)" filter="url(#softTexture)" opacity=".4"/>
+
+<!-- summit -->
+<circle cx="540" cy="276" r="94" fill="oklch(94% .10 79)" opacity=".27" filter="url(#blur18)"/>
+<circle cx="540" cy="276" r="31" fill="oklch(98% .055 89)"/>
+<g stroke="oklch(96% .09 85)" stroke-width="6" stroke-linecap="round" opacity=".86">
+  <path d="M540 220v-26"/><path d="M579 233l18-20"/><path d="M597 274h27"/><path d="M501 233l-18-20"/><path d="M483 274h-27"/>
+</g>
+
+<!-- road shadow and surface -->
+<path d="M492 1638C700 1538 774 1440 694 1357C612 1272 348 1303 300 1198C256 1100 410 1034 566 999C733 962 793 876 707 805C623 736 405 783 347 693C292 608 410 535 534 485C630 446 633 397 586 350" fill="none" stroke="oklch(19% .08 260)" stroke-opacity=".19" stroke-width="152" stroke-linecap="round" stroke-linejoin="round" filter="url(#blur18)"/>
+<path d="M492 1638C700 1538 774 1440 694 1357C612 1272 348 1303 300 1198C256 1100 410 1034 566 999C733 962 793 876 707 805C623 736 405 783 347 693C292 608 410 535 534 485C630 446 633 397 586 350" fill="none" stroke="url(#roadEdge)" stroke-width="142" stroke-linecap="round" stroke-linejoin="round" opacity=".72"/>
+<path d="M492 1638C700 1538 774 1440 694 1357C612 1272 348 1303 300 1198C256 1100 410 1034 566 999C733 962 793 876 707 805C623 736 405 783 347 693C292 608 410 535 534 485C630 446 633 397 586 350" fill="none" stroke="url(#road)" stroke-width="128" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M492 1638C700 1538 774 1440 694 1357C612 1272 348 1303 300 1198C256 1100 410 1034 566 999C733 962 793 876 707 805C623 736 405 783 347 693C292 608 410 535 534 485C630 446 633 397 586 350" fill="none" stroke="oklch(99% .015 80)" stroke-opacity=".36" stroke-width="5" stroke-dasharray="2 22" stroke-linecap="round"/>
+
+<!-- stage 1 current -->
+<g transform="translate(435 1545)" filter="url(#nodeShadow)">
+  <circle r="58" fill="oklch(95% .045 315)" stroke="oklch(99% .01 315)" stroke-width="8"/>
+  <circle r="37" fill="oklch(72% .13 309)"/>
+  <path d="M-18 12C-14-5-7-13 0-13S14-5 18 12" fill="oklch(97% .015 310)"/>
+  <circle cy="-19" r="11" fill="oklch(97% .015 310)"/>
+  <circle cx="39" cy="-40" r="15" fill="oklch(73% .18 42)" stroke="oklch(98% .02 42)" stroke-width="5"/>
+</g>
+<g transform="translate(590 1537)">
+  
+  
+</g>
+
+<!-- stage 2 -->
+<g transform="translate(311 1168)" filter="url(#nodeShadow)">
+  <circle r="50" fill="oklch(95% .055 207)" stroke="oklch(99% .012 207)" stroke-width="7"/>
+  <circle r="28" fill="oklch(72% .13 202)"/>
+  <path d="M-13 2l9 9 18-22" fill="none" stroke="oklch(98% .015 180)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<g transform="translate(399 1156)"></g>
+
+<!-- stage 3 -->
+<g transform="translate(701 892)" filter="url(#nodeShadow)">
+  <circle r="50" fill="oklch(95% .06 166)" stroke="oklch(99% .012 166)" stroke-width="7"/>
+  <circle r="28" fill="oklch(69% .14 164)"/>
+  <path d="M-13 2l9 9 18-22" fill="none" stroke="oklch(98% .015 160)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<g transform="translate(790 882)"></g>
+
+<!-- stage 4 -->
+<g transform="translate(354 659)" filter="url(#nodeShadow)">
+  <circle r="50" fill="oklch(95% .06 80)" stroke="oklch(99% .012 80)" stroke-width="7"/>
+  <circle r="28" fill="oklch(77% .15 75)"/>
+  <path d="M-13 2l9 9 18-22" fill="none" stroke="oklch(98% .015 80)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<g transform="translate(444 649)"></g>
+
+<!-- stage 5 -->
+<g transform="translate(589 436)" filter="url(#nodeShadow)">
+  <circle r="47" fill="oklch(97% .055 70)" stroke="oklch(99% .012 70)" stroke-width="7"/>
+  <circle r="26" fill="oklch(81% .16 72)"/>
+  <path d="M-13 2l9 9 18-22" fill="none" stroke="oklch(98% .015 75)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<g transform="translate(676 426)"></g>
+
+<!-- tiny environment details -->
+<g fill="oklch(31% .085 218)" opacity=".45">
+  <path d="M139 1249l19-58 19 58h-12v33h-15v-33z"/><path d="M185 1301l14-44 15 44h-9v25h-12v-25z"/>
+  <path d="M880 1118l18-55 18 55h-11v31h-14v-31z"/><path d="M925 1170l14-42 14 42h-9v24h-11v-24z"/>
+</g>
+<g fill="none" stroke="oklch(33% .075 230)" stroke-width="4" stroke-linecap="round" opacity=".45">
+  <path d="M158 475q13-12 26 0q13-12 26 0"/><path d="M832 542q12-11 24 0q12-11 24 0"/>
+</g>
+
+<!-- foreground -->
+<path d="M0 1547C192 1510 358 1580 540 1570C740 1558 893 1499 1080 1548V1920H0Z" fill="oklch(23% .075 257)"/>
+<path d="M0 1614C227 1568 380 1640 569 1627C755 1615 891 1570 1080 1612" fill="none" stroke="oklch(42% .08 230)" stroke-width="3" opacity=".45"/>
+
+<!-- title -->
+<g transform="translate(540 1732)" text-anchor="middle">
+  
+  
+</g>
+
+<!-- progress strip -->
+<g transform="translate(136 1843)">
+  <rect width="808" height="8" rx="4" fill="oklch(37% .065 249)"/>
+  <rect width="116" height="8" rx="4" fill="oklch(78% .15 72)"/>
+  <circle cx="116" cy="4" r="13" fill="oklch(83% .16 75)" stroke="oklch(24% .07 257)" stroke-width="6"/>
+</g>
+</svg>

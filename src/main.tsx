@@ -12,7 +12,7 @@ const AppSplash = () => {
   if (!visible) return <App />;
   return <div className="app-splash" dir="rtl" aria-label="در حال بارگذاری شمارش معکوس کنکور">
     <div className="app-splash-orbit orbit-a"/><div className="app-splash-orbit orbit-b"/>
-    <img src="/branding/puzzle-icon.png" alt="شمارش معکوس کنکور" />
+    <img src="/branding/puzzle-icon-1024.png" alt="شمارش معکوس کنکور" />
     <span>شمارش معکوس کنکور</span><small>آرام شروع کن، پیوسته جلو برو</small>
   </div>;
 };

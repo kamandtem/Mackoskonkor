@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, Check, ChevronDown, Pause, Play, RotateCcw, Search, Sparkles, Volume2, X } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { AmbientSoundId, SubjectItem } from '../types/konkur';
 import { toPersianDigits } from '../utils/jalali';
 import { soundEngine } from '../utils/soundEngine';
-import { celebrateAchievement, notifyUser } from '../utils/celebration';
 import { EmptyState } from './EmptyState';
 
 interface PersistedFocusTimer {
@@ -80,7 +80,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
       .slice(0, 4)
       .map((p) => ({
         ...p,
-        label: `${toPersianDigits(p.work)} / ${toPersianDigits(p.break)}`,
+        label: `${toPersianDigits(p.work)}/${toPersianDigits(p.break)}`,
       }));
   }, [workMinutes, breakMinutes]);
 
@@ -180,20 +180,32 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   }, [isActive]);
 
   const handleTimerFinished = () => {
+    // Confetti effect
+    try {
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 },
+      });
+    } catch {
+      // ignore
+    }
+
     if (mode === 'work') {
       const currentSubject = subjects.find((s) => s.id === selectedSubjectId);
       const subjectName = currentSubject ? currentSubject.name : 'مطالعه آزاد';
       onSessionComplete(selectedSubjectId, subjectName, totalWorkMinutes);
-      celebrateAchievement({ title: 'بازه مطالعه کامل شد', message: `${totalBreakMinutes} دقیقه استراحت خودکار شروع شد.`, notify: true });
+
+      // Start the recovery block automatically after a completed study block.
+      const breakSeconds = totalBreakMinutes * 60;
       setMode('break');
-      setSecondsRemaining(totalBreakMinutes * 60);
+      setSecondsRemaining(breakSeconds);
       window.setTimeout(() => {
-        endTimeRef.current = Date.now() + totalBreakMinutes * 60 * 1000;
+        endTimeRef.current = Date.now() + breakSeconds * 1000;
         setIsActive(true);
       }, 0);
     } else {
-      notifyUser('استراحت تمام شد', 'برای بازه بعدی مطالعه آماده‌ای.');
-      celebrateAchievement({ intensity: 'small' });
+      // Switch to work
       setMode('work');
       setSecondsRemaining(totalWorkMinutes * 60);
     }
@@ -294,8 +306,8 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
         {PRESETS.map((p, idx) => (
           <button
             key={idx}
-            dir="ltr"
             onClick={() => applyPreset(idx)}
+            dir="ltr"
             className={`focus-preset ${
               selectedPresetIndex === idx
                 ? 'bg-white text-indigo-700 shadow-sm border border-indigo-200'
@@ -372,9 +384,9 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
           </span>
 
           <div dir="ltr" className="text-5xl font-black text-slate-800 tracking-tight flex items-center justify-center font-mono">
-            <span>{toPersianDigits(String(minutes).padStart(2, '0'))}</span>
+            <span>{toPersianDigits(minutes < 10 ? '۰' + minutes : minutes)}</span>
             <span className="text-slate-300 mx-0.5 animate-pulse">:</span>
-            <span>{toPersianDigits(String(seconds).padStart(2, '0'))}</span>
+            <span>{toPersianDigits(seconds < 10 ? '۰' + seconds : seconds)}</span>
           </div>
 
           <span className="text-[11px] font-semibold text-slate-400 mt-1">
@@ -413,7 +425,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
           ) : (
             <>
               <Play className="w-6 h-6 fill-white ml-0.5" />
-              <span>{mode === 'work' ? 'شروع مطالعه' : 'شروع استراحت'}</span>
+              <span>{mode === 'break' ? 'شروع استراحت' : 'شروع مطالعه'}</span>
             </>
           )}
         </button>

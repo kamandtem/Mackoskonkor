@@ -73,7 +73,7 @@ export const Header: React.FC<HeaderProps> = ({
               aria-label={appName}
               className="w-11 h-11 rounded-2xl bg-orange-100/70 border border-orange-200 flex items-center justify-center active:scale-95 transition-all shrink-0 overflow-hidden"
             >
-              <img src="/icon.svg" alt="" className="app-logo-fit" />
+              <img src="/branding/puzzle-icon-1024.png" alt="" className="app-logo-fit" />
             </button>
 
             <button

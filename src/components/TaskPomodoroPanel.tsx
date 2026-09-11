@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, Coffee, Pause, Play, Square, Timer, X } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { TaskItem } from '../types/konkur';
 import { formatMinutesShort, toPersianDigits } from '../utils/jalali';
-import { celebrateAchievement, notifyUser } from '../utils/celebration';
 
 interface TaskPomodoroPanelProps {
   task: TaskItem | null;
@@ -95,7 +95,13 @@ export const TaskPomodoroPanel: React.FC<TaskPomodoroPanelProps> = ({
     saveTaskTimer(task.id, { phase, blockSeconds, secondsLeft, isRunning, loggedMinutes, cycle, target: targetRef.current, workMinutes: work, breakMinutes: rest, endTime: endRef.current });
   }, [task, isOpen, phase, blockSeconds, secondsLeft, isRunning, loggedMinutes, cycle]);
 
-  const celebrate = () => celebrateAchievement({ title: 'هدف مطالعه کامل شد', message: `${task?.subjectName ?? 'مطالعه'} با موفقیت ثبت شد.`, notify: true });
+  const celebrate = () => {
+    try {
+      confetti({ particleCount: 90, spread: 75, origin: { y: 0.65 } });
+    } catch {
+      // بی‌اهمیت
+    }
+  };
 
   const advance = () => {
     if (phase === 'work') {
@@ -121,9 +127,6 @@ export const TaskPomodoroPanel: React.FC<TaskPomodoroPanelProps> = ({
       setBlockSeconds(rest * 60);
       setSecondsLeft(rest * 60);
       endRef.current = Date.now() + rest * 60 * 1000;
-      setIsRunning(true);
-      notifyUser('وقت استراحت است', `${rest} دقیقه استراحت خودکار شروع شد.`);
-      celebrateAchievement({ intensity: 'small' });
       return;
     }
 
@@ -134,8 +137,6 @@ export const TaskPomodoroPanel: React.FC<TaskPomodoroPanelProps> = ({
     setBlockSeconds(next * 60);
     setSecondsLeft(next * 60);
     endRef.current = Date.now() + next * 60 * 1000;
-    setIsRunning(false);
-    notifyUser('استراحت تمام شد', 'هر وقت آماده‌ای بازه بعدی را شروع کن.');
   };
 
   /* شمارش بر پایه‌ی زمان پایان واقعی تا خواب صفحه دقت را خراب نکند */

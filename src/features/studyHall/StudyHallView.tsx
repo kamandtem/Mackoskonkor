@@ -1,14 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Armchair, ArrowRight, BarChart3, Bell, BookOpen, Building2, Camera, Check, CheckCircle2, ChevronLeft, Crown, LockKeyhole, MessageCircle, Plus, Trophy, UserPlus, XCircle,
+  Armchair, ArrowRight, BarChart3, BookOpen, Building2, Camera, Check, ChevronLeft, LockKeyhole, MessageCircle, Trophy, UserPlus, Plus, Settings2, XCircle,
   CircleStop, Clock3, DoorOpen, Map, Pause, Play, QrCode, RefreshCw, ScanLine,
   ShieldCheck, Sparkles, UserRound, Users, Wrench, X,
 } from 'lucide-react';
 import { SubjectItem } from '../../types/konkur';
+import { celebrateAchievement } from '../../utils/celebrate';
 import { LOCAL_STUDENT_ID, localStudyHallRepository } from './repository';
-import { QrValidationResult, Seat, SeatStatus, StudyHallLocation, StudyHallSession, StudyHallSnapshot, VirtualRoomMember, VirtualStudyRoom } from './types';
-import { virtualRoomRepository } from './virtualRoomRepository';
-import { celebrateAchievement, notifyUser } from '../../utils/celebration';
+import { QrValidationResult, Seat, SeatStatus, StudyHallLocation, StudyHallSession, StudyHallSnapshot, VirtualStudyRoom } from './types';
 
 type Experience = 'virtual' | 'physical';
 type PhysicalView = 'student' | 'manager';
@@ -41,6 +40,9 @@ export const StudyHallView: React.FC<Props> = ({ subjects, dailyGoalMinutes, tod
   const [activeSession, setActiveSession] = useState<StudyHallSession | null>(null);
   const [studySeconds, setStudySeconds] = useState(0);
   const [attendanceSeconds, setAttendanceSeconds] = useState(0);
+  const studySecondsRef = useRef(0);
+  const attendanceSecondsRef = useRef(0);
+  const clockRef = useRef(Date.now());
   const [summary, setSummary] = useState<StudyHallSession | null>(null);
   const [scanState, setScanState] = useState<ScanState>('idle');
   const [scanMessage, setScanMessage] = useState('');
@@ -59,8 +61,8 @@ export const StudyHallView: React.FC<Props> = ({ subjects, dailyGoalMinutes, tod
     if (open) {
       setActiveSession(open);
       setExperience(open.mode);
-      setStudySeconds(open.studySeconds);
-      setAttendanceSeconds(open.attendanceSeconds);
+      setStudySeconds(open.studySeconds); studySecondsRef.current = open.studySeconds;
+      setAttendanceSeconds(open.attendanceSeconds); attendanceSecondsRef.current = open.attendanceSeconds;
     }
   };
 
@@ -71,20 +73,33 @@ export const StudyHallView: React.FC<Props> = ({ subjects, dailyGoalMinutes, tod
 
   useEffect(() => {
     if (!activeSession) return;
+    clockRef.current = Date.now();
     const timer = window.setInterval(() => {
-      setAttendanceSeconds(value => activeSession.mode === 'physical' ? value + 1 : value);
-      if (activeSession.status === 'active') setStudySeconds(value => value + 1);
-    }, 1000);
+      const now = Date.now();
+      const elapsed = Math.floor((now - clockRef.current) / 1000);
+      if (elapsed < 1) return;
+      clockRef.current += elapsed * 1000;
+      if (activeSession.mode === 'physical') {
+        attendanceSecondsRef.current += elapsed;
+        setAttendanceSeconds(attendanceSecondsRef.current);
+      }
+      if (activeSession.status === 'active') {
+        studySecondsRef.current += elapsed;
+        setStudySeconds(studySecondsRef.current);
+      }
+    }, 500);
     return () => window.clearInterval(timer);
   }, [activeSession?.id, activeSession?.status, activeSession?.mode]);
 
   useEffect(() => {
     if (!activeSession) return;
-    const timer = window.setInterval(() => {
-      void localStudyHallRepository.saveSession({ ...activeSession, studySeconds, attendanceSeconds, updatedAt: nowIso(), syncStatus: 'pending' });
-    }, 15000);
-    return () => window.clearInterval(timer);
-  }, [activeSession, studySeconds, attendanceSeconds]);
+    const persist = () => void localStudyHallRepository.saveSession({ ...activeSession, studySeconds: studySecondsRef.current, attendanceSeconds: attendanceSecondsRef.current, updatedAt: nowIso(), syncStatus: 'pending' });
+    const timer = window.setInterval(persist, 15000);
+    const onHidden = () => { if (document.visibilityState === 'hidden') persist(); };
+    document.addEventListener('visibilitychange', onHidden);
+    window.addEventListener('pagehide', persist);
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', onHidden); window.removeEventListener('pagehide', persist); };
+  }, [activeSession?.id, activeSession?.status]);
 
   const selectedSubject = subjects.find(s => s.id === subjectId) ?? subjects[0];
   const activeSubject = subjects.find(s => s.id === activeSession?.subjectId);
@@ -94,11 +109,11 @@ export const StudyHallView: React.FC<Props> = ({ subjects, dailyGoalMinutes, tod
   const mySeat = snapshot?.seats.find(s => s.assignedStudentId === LOCAL_STUDENT_ID);
   const selectLocation = async (location: StudyHallLocation) => { setSnapshot(await localStudyHallRepository.selectLocation(location.branch.id, location.hall.id)); setLocationPickerOpen(false); setSelectedSeat(null); };
 
-  const startSession = async (mode: Experience, qr?: QrValidationResult, virtualRoomId?: string) => {
+  const startSession = async (mode: Experience, qr?: QrValidationResult, roomId?: string) => {
     if (!selectedSubject) return;
     const timestamp = nowIso();
     const session: StudyHallSession = {
-      id: uid(), studentId: LOCAL_STUDENT_ID, virtualRoomId,
+      id: uid(), studentId: LOCAL_STUDENT_ID, roomId,
       organizationId: qr?.organization?.id, branchId: qr?.branch?.id, hallId: qr?.hall?.id,
       sectionId: qr?.section?.id, seatId: qr?.seat?.id, qrId: qr?.qr?.id,
       subjectId: selectedSubject.id, subjectName: selectedSubject.name, mode,
@@ -109,29 +124,34 @@ export const StudyHallView: React.FC<Props> = ({ subjects, dailyGoalMinutes, tod
     if (mode === 'physical' && qr?.seat) {
       await localStudyHallRepository.updateSeat({ ...qr.seat, status: 'occupied', occupantName: 'شما', subjectName: selectedSubject.name, checkedInAt: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) });
     }
+    studySecondsRef.current = 0; attendanceSecondsRef.current = 0; clockRef.current = Date.now();
     setSummary(null); setStudySeconds(0); setAttendanceSeconds(0); setActiveSession(session); setValidatedQr(null); setScanState('idle');
     await reload();
   };
 
   const togglePause = async () => {
     if (!activeSession) return;
-    const next = { ...activeSession, studySeconds, attendanceSeconds, status: activeSession.status === 'active' ? 'paused' : 'active', updatedAt: nowIso(), syncStatus: 'pending' } as StudyHallSession;
+    const next = { ...activeSession, studySeconds: studySecondsRef.current, attendanceSeconds: attendanceSecondsRef.current, status: activeSession.status === 'active' ? 'paused' : 'active', updatedAt: nowIso(), syncStatus: 'pending' } as StudyHallSession;
     setActiveSession(next);
     await localStudyHallRepository.saveSession(next);
   };
 
   const finishSession = async () => {
     if (!activeSession) return;
-    const done: StudyHallSession = { ...activeSession, studySeconds, attendanceSeconds: activeSession.mode === 'physical' ? attendanceSeconds : studySeconds, checkOutTime: nowIso(), status: 'completed', syncStatus: 'pending', updatedAt: nowIso() };
+    const finalStudySeconds = studySecondsRef.current;
+    const finalAttendanceSeconds = activeSession.mode === 'physical' ? attendanceSecondsRef.current : finalStudySeconds;
+    const done: StudyHallSession = { ...activeSession, studySeconds: finalStudySeconds, attendanceSeconds: finalAttendanceSeconds, checkOutTime: nowIso(), status: 'completed', syncStatus: 'pending', updatedAt: nowIso() };
     await localStudyHallRepository.saveSession(done);
     if (done.seatId && snapshot) {
       const seat = snapshot.seats.find(s => s.id === done.seatId);
       if (seat) await localStudyHallRepository.updateSeat({ ...seat, status: seat.assignedStudentId === LOCAL_STUDENT_ID ? 'my-seat' : 'available', occupantName: undefined, subjectName: undefined, checkedInAt: undefined });
     }
-    if (studySeconds >= 30) onRecordStudy(done.subjectId, done.subjectName, Math.max(1, Math.round(studySeconds / 60)), done.mode);
-    if (done.virtualRoomId) { try { await virtualRoomRepository.recordStudy(done.virtualRoomId, LOCAL_STUDENT_ID, studySeconds); } catch {} }
-    celebrateAchievement({ title: 'نشست مطالعه ثبت شد', message: `${Math.max(1, Math.round(studySeconds / 60))} دقیقه مطالعه به آمار تو اضافه شد.`, notify: true });
-    setSummary(done); setActiveSession(null); setStudySeconds(0); setAttendanceSeconds(0); await reload();
+    if (finalStudySeconds >= 30) {
+      onRecordStudy(done.subjectId, done.subjectName, Math.max(1, Math.round(finalStudySeconds / 60)), done.mode);
+      if (done.roomId) await localStudyHallRepository.recordRoomStudy(done.roomId, LOCAL_STUDENT_ID, finalStudySeconds);
+    }
+    celebrateAchievement();
+    setSummary(done); setActiveSession(null); studySecondsRef.current = 0; attendanceSecondsRef.current = 0; setStudySeconds(0); setAttendanceSeconds(0); await reload();
   };
 
   const validateToken = async (token: string) => {
@@ -244,36 +264,54 @@ export const StudyHallView: React.FC<Props> = ({ subjects, dailyGoalMinutes, tod
   </section>;
 };
 
-const secondsLabel = (seconds: number) => `${fa(Math.floor(seconds / 3600))} ساعت و ${fa(Math.floor((seconds % 3600) / 60))} دقیقه`;
-const currentMember = (): VirtualRoomMember => ({ studentId: LOCAL_STUDENT_ID, displayName: 'شما', role: 'member', joinedAt: nowIso(), totalStudySeconds: 0, status: 'offline' });
-
-const VirtualRooms: React.FC<{ subjects: SubjectItem[]; selectedSubjectId: string; onSubjectChange: (value: string) => void; onStart: (roomId: string) => void }> = ({ subjects, selectedSubjectId, onSubjectChange, onStart }) => {
-  const [rooms,setRooms]=useState<VirtualStudyRoom[]>([]); const [room,setRoom]=useState<VirtualStudyRoom|null>(null); const [mine,setMine]=useState(false);
-  const [createOpen,setCreateOpen]=useState(false); const [notice,setNotice]=useState(''); const [name,setName]=useState(''); const [slug,setSlug]=useState(''); const [description,setDescription]=useState(''); const [visibility,setVisibility]=useState<'public'|'private'>('private');
-  const [memberName,setMemberName]=useState(''); const load=async()=>{const data=await virtualRoomRepository.listRooms(LOCAL_STUDENT_ID);setRooms(data);if(room)setRoom(data.find(x=>x.id===room.id)??null)};
-  useEffect(()=>{void load()},[]);
-  const visible=mine?rooms.filter(x=>x.members.some(m=>m.studentId===LOCAL_STUDENT_ID)):rooms;
-  const isMember=(value:VirtualStudyRoom)=>value.members.some(m=>m.studentId===LOCAL_STUDENT_ID); const canManage=(value:VirtualStudyRoom)=>value.members.some(m=>m.studentId===LOCAL_STUDENT_ID&&['owner','admin'].includes(m.role));
-  const enter=async(value:VirtualStudyRoom)=>{try{if(!isMember(value)){if(value.visibility==='private'){await virtualRoomRepository.requestMembership(value.id,LOCAL_STUDENT_ID,'شما');setNotice('درخواست عضویت ارسال شد؛ مدیر اتاق باید آن را تأیید کند.');notifyUser('درخواست عضویت ثبت شد',`درخواست ورود به ${value.name} در انتظار بررسی است.`);await load();return}await virtualRoomRepository.joinPublicRoom(value.id,currentMember());await load()}onStart(value.id)}catch(error){setNotice(error instanceof Error?error.message:'عملیات انجام نشد.')}};
-  const create=async(e:React.FormEvent)=>{e.preventDefault();try{const made=await virtualRoomRepository.createRoom({name:name.trim(),slug,description:description.trim(),visibility,capacity:30},{...currentMember(),role:'owner'});setCreateOpen(false);setName('');setSlug('');setDescription('');setRoom(made);await load();celebrateAchievement({title:'اتاق ساخته شد',message:`${made.name} آماده دعوت اعضاست.`,notify:true})}catch(error){setNotice(error instanceof Error?error.message:'ساخت اتاق انجام نشد.')}};
-  const review=async(requestId:string,approve:boolean)=>{if(!room)return;await virtualRoomRepository.reviewMembership(room.id,requestId,LOCAL_STUDENT_ID,approve);await load();setNotice(approve?'عضو جدید به اتاق اضافه شد.':'درخواست رد شد.');if(approve)celebrateAchievement({intensity:'small'})};
-  const addMember=async()=>{if(!room||!memberName.trim())return;const id=`student-${Date.now()}`;await virtualRoomRepository.addMember(room.id,{studentId:id,displayName:memberName.trim(),role:'member',joinedAt:nowIso(),totalStudySeconds:0,status:'offline'},LOCAL_STUDENT_ID);setMemberName('');await load();setNotice('عضو با موفقیت اضافه شد.');};
-  if(room){const ranking=[...room.members].sort((a,b)=>b.totalStudySeconds-a.totalStudySeconds);return <div className="virtual-room-detail">
-    <button className="virtual-back" onClick={()=>{setRoom(null);setNotice('')}}><ArrowRight/><span>بازگشت</span></button>
-    <div className="room-identity"><span className="room-monogram">{room.name[0]}</span><div><small dir="ltr">@{room.slug}</small><h2>{room.name}</h2><p>{room.description}</p></div>{room.visibility==='private'&&<LockKeyhole/>}</div>
-    <div className="room-meta"><span><Users/>{fa(room.members.length)} عضو</span><span><Crown/>{room.members.find(m=>m.role==='owner')?.displayName}</span></div>
-    {notice&&<div className="room-notice"><Bell/><span>{notice}</span></div>}
+const orbitMembers=[
+  {name:'آرین',time:'۰۳:۲۱:۵۵',image:'/avatars/student-1.webp',status:'تمرکز'},
+  {name:'سارا',time:'۰۲:۴۸:۰۱',image:'/avatars/student-2.webp',status:'تمرکز'},
+  {name:'مانی',time:'۰۱:۳۵:۲۰',image:'/avatars/student-3.webp',status:'مرور'},
+  {name:'رها',time:'۰۰:۵۹:۱۷',image:'/avatars/student-4.webp',status:'تمرکز'},
+  {name:'نیما',time:'۰۴:۲۷:۵۷',image:'/avatars/student-5.webp',status:'استراحت'},
+  {name:'یلدا',time:'۰۲:۰۹:۴۰',image:'/avatars/student-6.webp',status:'تمرکز'},
+];
+const roomDuration=(seconds:number)=>formatDuration(seconds);
+const VirtualRooms: React.FC<{ subjects: SubjectItem[]; selectedSubjectId: string; onSubjectChange: (value: string) => void; onStart: (roomId:string) => void }> = ({ subjects, selectedSubjectId, onSubjectChange, onStart }) => {
+  const [mode,setMode]=useState<'all'|'mine'>('all');
+  const [rooms,setRooms]=useState<VirtualStudyRoom[]>([]);
+  const [roomId,setRoomId]=useState<string|null>(null);
+  const [createOpen,setCreateOpen]=useState(false);
+  const [manageOpen,setManageOpen]=useState(false);
+  const [name,setName]=useState(''); const [handle,setHandle]=useState(''); const [category,setCategory]=useState('مطالعه گروهی'); const [capacity,setCapacity]=useState(20); const [isPrivate,setIsPrivate]=useState(true); const [memberName,setMemberName]=useState(''); const [error,setError]=useState('');
+  const reload=async()=>setRooms(await localStudyHallRepository.listVirtualRooms());
+  useEffect(()=>{void reload()},[]);
+  const room=rooms.find(r=>r.id===roomId)??null;
+  const membership=room?.members.find(m=>m.id===LOCAL_STUDENT_ID);
+  const activeMembers=(r:VirtualStudyRoom)=>r.members.filter(m=>m.status==='active');
+  const canManage=Boolean(room&&(room.ownerId===LOCAL_STUDENT_ID||membership?.role==='manager'));
+  const enter=async()=>{if(!room)return; if(!membership||membership.status==='rejected'){const updated=await localStudyHallRepository.requestRoomMembership(room.id,LOCAL_STUDENT_ID,'شما'); setRooms(v=>v.map(r=>r.id===updated.id?updated:r)); if(updated.isPrivate)return;} if(membership?.status==='pending')return; onStart(room.id)};
+  const create=async()=>{setError(''); try{const clean=handle.trim().replace(/^@/,''); if(name.trim().length<3||clean.length<3){setError('نام و شناسه حداقل ۳ حرف باشند.');return} const created=await localStudyHallRepository.createVirtualRoom({name:name.trim(),handle:`@${clean}`,category,capacity,isPrivate,ownerId:LOCAL_STUDENT_ID,ownerName:'شما'}); setRooms(v=>[created,...v]); celebrateAchievement(); setRoomId(created.id); setCreateOpen(false); setName('');setHandle('');}catch(e){setError(e instanceof Error?e.message:'ساخت اتاق انجام نشد.')}};
+  const addMember=async()=>{if(!room||!memberName.trim())return; const updated=await localStudyHallRepository.addRoomMember(room.id,`member-${Date.now()}`,memberName.trim()); setRooms(v=>v.map(r=>r.id===updated.id?updated:r)); setMemberName('')};
+  const review=async(id:string,approve:boolean)=>{if(!room)return; const updated=await localStudyHallRepository.reviewRoomMembership(room.id,id,approve); setRooms(v=>v.map(r=>r.id===updated.id?updated:r))};
+  const visible=rooms.filter(r=>mode==='all'||r.members.some(m=>m.id===LOCAL_STUDENT_ID&&m.status==='active'));
+  if(room) {const members=activeMembers(room); const pending=room.members.filter(m=>m.status==='pending'); const leaderboard=[...members].sort((a,b)=>b.studySeconds-a.studySeconds); return <div className="virtual-room-detail">
+    <button className="virtual-back" onClick={()=>{setRoomId(null);setManageOpen(false)}}><ArrowRight/><span>بازگشت به اتاق‌ها</span></button>
+    <div className={`virtual-profile-hero ${room.pattern}`}><div className="virtual-hero-actions">{canManage&&<button onClick={()=>setManageOpen(v=>!v)} aria-label="مدیریت اتاق"><Settings2/></button>}<button><ChevronLeft/></button></div><div className="virtual-room-avatar">{room.name.slice(0,1)}<i><Trophy/></i></div><span className="virtual-handle" dir="ltr">{room.handle}</span><h2>{room.name}</h2><div className="virtual-profile-tabs"><button className="active">جزئیات</button><button>اتاق مطالعه</button><button>رتبه‌بندی</button></div></div>
+    {manageOpen&&canManage&&<div className="virtual-manager-panel"><header><div><b>مدیریت اتاق</b><small>{fa(pending.length)} درخواست در انتظار</small></div><button onClick={()=>setManageOpen(false)}><X/></button></header><label><UserPlus/><input value={memberName} onChange={e=>setMemberName(e.target.value)} placeholder="نام دانش‌آموز برای افزودن"/><button onClick={()=>void addMember()}>افزودن</button></label>{pending.map(m=><div className="virtual-request-row" key={m.id}><span>{m.name}</span><button className="approve" onClick={()=>void review(m.id,true)}><Check/></button><button onClick={()=>void review(m.id,false)}><XCircle/></button></div>)}</div>}
+    <div className="virtual-quote"><span>❝</span><p>با هم شروع می‌کنیم، با تمرکز ادامه می‌دیم.</p></div>
+    <div className="virtual-room-facts"><span><Users/><b>{fa(members.length)}</b> نفر</span><span><Clock3/><b>{roomDuration(members.reduce((n,m)=>n+m.studySeconds,0))}</b> مطالعه ثبت‌شده</span></div>
+    <div className="virtual-live-map"><div className="virtual-orbit-line orbit-one"/><div className="virtual-orbit-line orbit-two"/><div className="virtual-live-center"><span className="virtual-pulse"/><strong>{fa(members.length)}</strong><span>عضو فعال</span><small>زمان‌ها برای رتبه‌بندی ذخیره می‌شوند</small></div>{orbitMembers.map((member,i)=><button key={member.name} className={`virtual-node node-${i}`} aria-label={`${member.name}، ${member.status}`}><i><img src={member.image} alt=""/></i><b>{member.name}</b><small>{leaderboard[i]?roomDuration(leaderboard[i].studySeconds):member.time}</small></button>)}</div>
+    <div className="virtual-leaderboard">{leaderboard.slice(0,5).map((m,i)=><div key={m.id}><b>{fa(i+1)}</b><span>{m.name}</span><strong dir="ltr">{roomDuration(m.studySeconds)}</strong></div>)}</div>
     <label className="hall-subject-select virtual-subject"><span>درس این نشست</span><select value={selectedSubjectId} onChange={e=>onSubjectChange(e.target.value)}>{subjects.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
-    <button className="hall-primary-action virtual-join" onClick={()=>void enter(room)}>{isMember(room)?<><Play/>شروع مطالعه در اتاق</>:room.visibility==='private'?<><LockKeyhole/>درخواست عضویت</>:<><UserPlus/>عضویت و شروع</>}</button>
-    <section className="room-ranking"><header><div><Trophy/><span><b>رتبه‌بندی مطالعه</b><small>بر اساس زمان ثبت‌شده واقعی</small></span></div></header>{ranking.map((m,i)=><div key={m.studentId}><strong>{fa(i+1)}</strong><span><b>{m.displayName}</b><small>{m.role==='owner'?'سازنده اتاق':m.role==='admin'?'مدیر':'عضو'}</small></span><em>{secondsLabel(m.totalStudySeconds)}</em></div>)}</section>
-    {canManage(room)&&<section className="room-admin"><header><ShieldCheck/><span><b>مدیریت اتاق</b><small>اعضا و درخواست‌های عضویت</small></span></header><div className="room-add-member"><input value={memberName} onChange={e=>setMemberName(e.target.value)} placeholder="نام عضو جدید"/><button onClick={()=>void addMember()}><UserPlus/>افزودن</button></div>{room.requests.filter(r=>r.status==='pending').map(req=><div className="room-request" key={req.id}><span><b>{req.displayName}</b><small>درخواست عضویت</small></span><button onClick={()=>void review(req.id,true)} aria-label="پذیرش"><CheckCircle2/></button><button onClick={()=>void review(req.id,false)} aria-label="رد"><XCircle/></button></div>)}</section>}
+    {membership?.status==='pending'?<div className="virtual-requested"><Check/><span><b>درخواستت ثبت شد</b><small>با تأیید مدیر اتاق، ورود برایت باز می‌شود.</small></span></div>:<button className="hall-primary-action virtual-join" onClick={()=>void enter()}>{room.isPrivate&&membership?.status!=='active'?<><LockKeyhole/> درخواست عضویت</>:<><Play/> ورود و شروع مطالعه</>}</button>}
   </div>}
   return <div className="virtual-rooms" dir="rtl">
-    <div className="room-actions"><div className="virtual-tabs"><button className={!mine?'active':''} onClick={()=>setMine(false)}><Users/>همه اتاق‌ها</button><button className={mine?'active':''} onClick={()=>setMine(true)}><ShieldCheck/>اتاق‌های من</button></div><button className="room-create-button" onClick={()=>setCreateOpen(true)}><Plus/>ساخت اتاق</button></div>
-    <div className="room-feed">{visible.map(item=>{const top=[...item.members].sort((a,b)=>b.totalStudySeconds-a.totalStudySeconds)[0];return <button key={item.id} className="room-feed-item" onClick={()=>setRoom(item)}><span className="room-feed-avatar">{item.name[0]}</span><div><strong>{item.name}</strong><small dir="ltr">@{item.slug}</small><p>{item.description}</p><em><Users/>{fa(item.members.length)} عضو <i/> <Trophy/>{top?.displayName??'بدون رتبه'}</em></div><ChevronLeft/>{item.visibility==='private'&&<LockKeyhole className="room-lock"/>}</button>})}</div>
-    {createOpen&&<div className="hall-sheet-shell" role="dialog" aria-modal="true" onClick={()=>setCreateOpen(false)}><form className="hall-sheet room-create-sheet" onSubmit={create} onClick={e=>e.stopPropagation()}><header><div><span>ساخت اتاق جدید</span><small>نام و شناسه بعداً به API سرور متصل می‌شوند</small></div><button type="button" onClick={()=>setCreateOpen(false)}><X/></button></header><label><span>نام اتاق</span><input required value={name} onChange={e=>setName(e.target.value)} placeholder="مثلاً جمع‌بندی دوازدهم"/></label><label><span>شناسه یکتا</span><input dir="ltr" required pattern="[A-Za-z0-9_-]+" value={slug} onChange={e=>setSlug(e.target.value)} placeholder="grade12-focus"/></label><label><span>توضیح کوتاه</span><textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="هدف و قوانین اتاق"/></label><div className="room-visibility"><button type="button" className={visibility==='private'?'active':''} onClick={()=>setVisibility('private')}><LockKeyhole/>خصوصی، با تأیید مدیر</button><button type="button" className={visibility==='public'?'active':''} onClick={()=>setVisibility('public')}><Users/>عمومی</button></div>{notice&&<p className="room-form-error">{notice}</p>}<button className="hall-primary-action" type="submit"><Plus/>ساخت اتاق</button></form></div>}
-  </div>;
+    <div className="virtual-create-line"><button onClick={()=>setCreateOpen(true)}><Plus/> ساخت اتاق</button></div>
+    <div className="virtual-tabs"><button className={mode==='all'?'active':''} onClick={()=>setMode('all')}><Users/> همه اتاق‌ها</button><button className={mode==='mine'?'active':''} onClick={()=>setMode('mine')}><ShieldCheck/> اتاق‌های من</button></div>
+    <div className="virtual-featured"><div className="virtual-featured-pattern"><Trophy/></div><div><span>پیشنهاد امروز پازل</span><strong>اتاق‌های پرتلاش‌ها</strong><small>با آدم‌هایی که همین حالا مشغول‌اند همراه شو</small></div><ChevronLeft/></div>
+    <div className="virtual-list-heading"><div><span>اتاق‌های مطالعه کاربران</span><small>{fa(visible.length)} اتاق فعال</small></div></div>
+    <div className="virtual-room-list">{visible.map(item=>{const members=activeMembers(item);return <button key={item.id} className={`virtual-room-card ${item.accent} ${item.pattern}`} onClick={()=>setRoomId(item.id)}><div className="virtual-card-art"><span className="virtual-card-avatar">{item.name.slice(0,1)}</span><span className="virtual-card-handle" dir="ltr">{item.handle}</span>{item.isPrivate&&<LockKeyhole/>}</div><div className="virtual-card-body"><div><strong>{item.name}</strong><small>{item.category}</small></div><span className="virtual-card-score">{fa(members.length)} | {fa(item.capacity)}</span></div><div className="virtual-card-foot"><span><i/> {fa(members.length)} عضو</span><span><MessageCircle/> گفتگو</span></div></button>})}</div>
+    {createOpen&&<div className="hall-sheet-shell" role="dialog" aria-modal="true" onClick={()=>setCreateOpen(false)}><div className="hall-sheet virtual-create-sheet" onClick={e=>e.stopPropagation()}><header><div><span>ساخت اتاق مطالعه</span><small>آماده اتصال مستقیم به API سرور</small></div><button onClick={()=>setCreateOpen(false)}><X/></button></header><label><span>نام اتاق</span><input value={name} onChange={e=>setName(e.target.value)} placeholder="مثلاً جمع‌بندی دوازدهم"/></label><label><span>شناسه یکتا</span><input dir="ltr" value={handle} onChange={e=>setHandle(e.target.value)} placeholder="@room_id"/></label><label><span>موضوع</span><input value={category} onChange={e=>setCategory(e.target.value)}/></label><label><span>ظرفیت</span><input type="number" min="2" max="100" value={capacity} onChange={e=>setCapacity(Math.max(2,Math.min(100,Number(e.target.value))))}/></label><button className={`virtual-private-toggle ${isPrivate?'active':''}`} onClick={()=>setIsPrivate(v=>!v)}><LockKeyhole/><span>{isPrivate?'خصوصی، ورود با تأیید مدیر':'عمومی، ورود آزاد'}</span></button>{error&&<p className="virtual-form-error">{error}</p>}<button className="hall-primary-action" onClick={()=>void create()}><Plus/> ساخت اتاق</button></div></div>}
+  </div>
 };
+const BellIcon: React.FC<{className?:string}> = ({className}) => <span className={className}>♧</span>;
 
 const ManagerHall: React.FC<{ snapshot: StudyHallSnapshot; selectedSeat: Seat | null; setSelectedSeat: (seat: Seat | null) => void; onUpdated: () => Promise<void> }> = ({ snapshot, selectedSeat, setSelectedSeat, onUpdated }) => {
   const occupied = snapshot.seats.filter(s => s.status === 'occupied').length;

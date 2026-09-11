@@ -46,7 +46,7 @@ import {
   tasksForDay,
 } from './utils/stats';
 import { soundEngine } from './utils/soundEngine';
-import { celebrateAchievement } from './utils/celebration';
+import { celebrateAchievement } from './utils/celebrate';
 
 import { applyTheme, loadTheme, saveTheme, ThemeMode } from './utils/theme';
 
@@ -332,6 +332,7 @@ export default function App() {
         if (remaining > 0) {
           recordSession(task.subjectId, task.subjectName, remaining, 'manual');
         }
+        celebrateAchievement();
         setTasks((prev) =>
           prev.map((t) =>
             t.id === taskId
@@ -343,7 +344,6 @@ export default function App() {
               : t,
           ),
         );
-        celebrateAchievement({ title: 'کار انجام شد', message: `${task.subjectName} با موفقیت به پایان رسید.`, notify: profile.notificationsEnabled, intensity: 'small' });
         return;
       }
 
@@ -351,7 +351,7 @@ export default function App() {
         prev.map((t) => (t.id === taskId ? { ...t, isCompleted: false } : t)),
       );
     },
-    [tasks, recordSession, profile.notificationsEnabled],
+    [tasks, recordSession],
   );
 
   /** ثبت دقیقه‌های تایمر یا پومودورو روی یک ردیف برنامه */
@@ -362,6 +362,8 @@ export default function App() {
       if (!task) return;
 
       recordSession(task.subjectId, task.subjectName, minutes, type);
+      const reachesGoal = !task.isCompleted && (task.loggedMinutes ?? 0) + minutes >= task.durationMinutes;
+      if (reachesGoal) celebrateAchievement();
       setTasks((prev) =>
         prev.map((t) => {
           if (t.id !== taskId) return t;
@@ -415,6 +417,7 @@ export default function App() {
       timestamp: Date.now(),
     };
     setDrills((prev) => [drill, ...prev]);
+    celebrateAchievement();
 
     // تست‌زنی هم مطالعه است: در آمار ثبت می‌شود
     const minutes = Math.round(drill.durationSeconds / 60);
@@ -531,11 +534,12 @@ export default function App() {
               todayStudyMinutes={stats.todayMinutes}
               streakDays={stats.streak}
               goalPct={stats.goalPct}
-              onOpenDatePicker={() => setIsSettingsOpen(true)}
-              onStatClick={(card) => {
+              onStatCardClick={(card) => {
                 if (card === 'goal') setIsSettingsOpen(true);
                 else goToTab('progress');
               }}
+              onStartFocus={() => goToTab('focus')}
+              onOpenDatePicker={() => setIsSettingsOpen(true)}
             />
 
             <HomeUpdates />

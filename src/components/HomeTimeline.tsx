@@ -1,21 +1,41 @@
 import React from 'react';
 import {
   AlertTriangle,
+  Check,
   BookOpen,
-  CheckCircle2,
   ChevronLeft,
-  Circle,
   Clock,
   Plus,
   Zap,
 } from 'lucide-react';
-import { TaskItem } from '../types/konkur';
+import { SubjectItem, TaskItem } from '../types/konkur';
 import { pickCurrentTask } from '../utils/stats';
-import { formatTime, toPersianDigits } from '../utils/jalali';
+import { formatTime, minutesToTime, timeToMinutes, toPersianDigits } from '../utils/jalali';
+
+const FALLBACK_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#f97316'];
+
+const PERIODS = [
+  { id: 'dawn', label: 'سحر', icon: '🌙', from: 0, to: 5 * 60, color: '#6366f1' },
+  { id: 'morning', label: 'صبح', icon: '🌤️', from: 5 * 60, to: 12 * 60, color: '#f59e0b' },
+  { id: 'noon', label: 'ظهر', icon: '☀️', from: 12 * 60, to: 15 * 60, color: '#f97316' },
+  { id: 'afternoon', label: 'عصر', icon: '🌇', from: 15 * 60, to: 19 * 60, color: '#ec4899' },
+  { id: 'night', label: 'شب', icon: '🌙', from: 19 * 60, to: 24 * 60, color: '#7c3aed' },
+];
+
+function hexToRgba(color: string, alpha: number): string {
+  const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim());
+  if (!m) return `rgba(99, 102, 241, ${alpha})`;
+  let hex = m[1];
+  if (hex.length === 3) hex = hex.split('').map((c) => c + c).join('');
+  const n = parseInt(hex, 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
 
 interface HomeTimelineProps {
   /** فقط کارهای امروز */
   tasks: TaskItem[];
+  /** برای رنگ هر درس روی خط زمان */
+  subjects?: SubjectItem[];
   onToggleTask: (taskId: string) => void;
   onAddTask: () => void;
   onViewAllPlanner: () => void;
@@ -24,6 +44,7 @@ interface HomeTimelineProps {
 
 export const HomeTimeline: React.FC<HomeTimelineProps> = ({
   tasks,
+  subjects = [],
   onToggleTask,
   onAddTask,
   onViewAllPlanner,
@@ -31,6 +52,22 @@ export const HomeTimeline: React.FC<HomeTimelineProps> = ({
 }) => {
   const { current, next, isOverdue } = pickCurrentTask(tasks);
   const doneCount = tasks.filter((t) => t.isCompleted).length;
+
+  const colorFor = (task: TaskItem, index: number) =>
+    task.color ||
+    subjects.find((s) => s.id === task.subjectId)?.color ||
+    FALLBACK_COLORS[index % FALLBACK_COLORS.length];
+
+  // کارهای امروز (از قبل مرتب) را بر اساس بخش روز گروه‌بندی کن؛ اندیس سراسری برای یک‌درمیان چیدن
+  const groups = PERIODS.map((p) => ({
+    ...p,
+    items: tasks
+      .map((task, index) => ({ task, index }))
+      .filter(({ task }) => {
+        const m = timeToMinutes(task.startTime);
+        return m >= p.from && m < p.to;
+      }),
+  })).filter((g) => g.items.length > 0);
 
   return (
     <div className="mx-4 my-3 flex flex-col gap-3">
@@ -147,66 +184,69 @@ export const HomeTimeline: React.FC<HomeTimelineProps> = ({
             </button>
           </div>
         ) : (
-          <div className="relative flex flex-col gap-3">
-            <div className="absolute right-[19px] top-3 bottom-3 w-[2px] bg-slate-100 -z-0" />
-
-            {tasks.map((task) => {
-              const isCurrent = current?.id === task.id;
-              return (
-                <div
-                  key={task.id}
-                  className={`relative z-10 flex items-center justify-between gap-2 p-3 rounded-2xl transition-all ${
-                    task.isCompleted
-                      ? 'bg-slate-50/70 border border-slate-100 opacity-65'
-                      : isCurrent
-                        ? 'bg-white border border-indigo-200 shadow-xs ring-1 ring-indigo-100'
-                        : 'bg-white border border-slate-100/90 shadow-2xs'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <button
-                      type="button"
-                      onClick={() => onToggleTask(task.id)}
-                      aria-label="تغییر وضعیت"
-                      className="transition-transform active:scale-90 shrink-0"
-                    >
-                      {task.isCompleted ? (
-                        <CheckCircle2 className="w-6 h-6 text-emerald-500 fill-emerald-50" />
-                      ) : (
-                        <Circle className="w-6 h-6 text-slate-300" />
-                      )}
-                    </button>
-
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-sm font-bold truncate ${
-                            task.isCompleted ? 'line-through text-slate-400' : 'text-slate-800'
-                          }`}
-                        >
-                          {task.subjectName}
-                        </span>
-                        <span className="text-[11px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md shrink-0">
-                          {formatTime(task.startTime)}
-                        </span>
-                      </div>
-                      {task.notes && (
-                        <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">
-                          {task.notes}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1 text-xs font-bold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-100 shrink-0">
-                    <Clock className="w-3 h-3 text-slate-400" />
-                    <span className="whitespace-nowrap">
-                      {toPersianDigits(task.durationMinutes)} دقیقه
-                    </span>
-                  </div>
+          <div className="htl" dir="rtl">
+            <span className="htl-rail" aria-hidden="true" />
+            {groups.map((group) => (
+              <React.Fragment key={group.id}>
+                <div className="htl-flag" style={{ '--flag': group.color } as React.CSSProperties}>
+                  <span>{group.icon}</span>
+                  {group.label}
                 </div>
-              );
-            })}
+
+                {group.items.map(({ task, index }) => {
+                  const isCurrent = current?.id === task.id;
+                  const color = colorFor(task, index);
+                  const side = index % 2 === 0 ? 'is-start' : 'is-end';
+                  const end = minutesToTime(timeToMinutes(task.startTime) + task.durationMinutes);
+                  return (
+                    <div
+                      key={task.id}
+                      className={`htl-row ${side} ${task.isCompleted ? 'is-done' : ''} ${isCurrent ? 'is-current' : ''}`}
+                      style={
+                        {
+                          '--c': color,
+                          '--c-soft': hexToRgba(color, 0.12),
+                          '--c-mid': hexToRgba(color, 0.28),
+                          '--i': index,
+                        } as React.CSSProperties
+                      }
+                    >
+                      <button
+                        type="button"
+                        className="htl-card"
+                        onClick={() => onStartFocusSubject(task.subjectName)}
+                        disabled={task.isCompleted}
+                      >
+                        <span className="htl-card-title">
+                          <b>{task.subjectName}</b>
+                          <ChevronLeft />
+                        </span>
+                        <span className="htl-card-sub">
+                          {toPersianDigits(task.durationMinutes)} دقیقه
+                          {task.notes ? ` · ${task.notes}` : task.chapter ? ` · ${task.chapter}` : ''}
+                        </span>
+                        {isCurrent && <span className="htl-now">الان</span>}
+                      </button>
+
+                      <button
+                        type="button"
+                        className="htl-node"
+                        onClick={() => onToggleTask(task.id)}
+                        aria-label={task.isCompleted ? 'برگرداندن به انجام‌نشده' : 'علامت انجام شد'}
+                      >
+                        {task.isCompleted ? <Check /> : null}
+                      </button>
+
+                      <span className="htl-time">
+                        <b dir="ltr">{formatTime(task.startTime)}</b>
+                        <small dir="ltr">تا {formatTime(end)}</small>
+                      </span>
+                    </div>
+                  );
+                })}
+              </React.Fragment>
+            ))}
+            <span className="htl-hint">برای تیک زدن، روی دایره‌ی وسط بزن</span>
           </div>
         )}
       </div>

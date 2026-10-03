@@ -226,7 +226,18 @@ export const StudyHallView: React.FC<Props> = ({ subjects, dailyGoalMinutes, tod
     </section>;
   }
 
-  return <section className="study-hall" dir="rtl">
+  return <section className="study-hall study-hall-locked" dir="rtl">
+    <div className="coming-soon-overlay">
+      <div className="coming-soon-content">
+        <div className="coming-soon-icon">
+          <LockKeyhole />
+        </div>
+        <h2>به زودی...</h2>
+        <p>سالن مطالعه پازل در حال حاضر در دست توسعه است و خیلی زود برای تو باز می‌شود.</p>
+        <small>من‌تظر برای نسخه بعدی هب سر برای این قابلیت فوق‌العاده!</small>
+      </div>
+    </div>
+
     <header className="hall-heading">
       <div><span><Sparkles /> فضای مطالعه پازل</span><h1>سالن مطالعه</h1></div>
       <button onClick={() => setPhysicalView(v => v === 'student' ? 'manager' : 'student')} aria-label="تغییر نمای کاربری">

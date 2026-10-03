@@ -1,6 +1,7 @@
 export type MajorType = 'تجربی' | 'ریاضی' | 'انسانی' | 'هنر' | 'زبان';
 
 export interface UserProfile {
+  studyRoutine?: StudyRoutine;
   /** خالی یعنی کاربر هنوز اطلاعاتش را وارد نکرده است */
   name: string;
   major: MajorType;
@@ -70,7 +71,19 @@ export interface StudySession {
   isoDate: string;
   timestamp: number;
   type: 'pomodoro' | 'timer' | 'manual' | 'drill' | 'virtual' | 'physical';
+  /** نوع فعالیت برای تفکیک گزارش‌ها؛ نبودِ آن یعنی «مطالعه» (داده‌های قدیمی) */
+  activityType?: ActivityKind;
+  /** ساعت شروع واقعی جلسه HH:MM — برای نمودار پراکندگی مطالعه */
+  startTime?: string;
+  /** ساعت پایان واقعی جلسه HH:MM */
+  endTime?: string;
+  /** تعداد تست‌هایی که در این جلسه زده شده (ثبت دستی) */
+  questionCount?: number;
+  /** ردیف برنامه‌ای که این جلسه از آن ثبت شده */
+  taskId?: string;
 }
+
+export type ActivityKind = 'study' | 'class' | 'other';
 
 export interface MockExam {
   id: string;
@@ -130,3 +143,19 @@ export interface AppBackup {
   drills: TestDrill[];
   notes: NoteItem[];
 }
+
+export interface StudyRoutine {
+  goestoSchool: boolean;
+  schoolShift: 'morning' | 'afternoon';
+  morningStart: string;
+  morningEnd: string;
+  afternoonStart: string;
+  afternoonEnd: string;
+  nightStart: string;
+  nightEnd: string;
+}
+
+/** اطلاعات تکمیلی هنگام ثبت یک جلسه — برای گزارش‌های دقیق‌تر */
+export type SessionExtra = Partial<
+  Pick<StudySession, 'activityType' | 'startTime' | 'endTime' | 'questionCount' | 'taskId' | 'isoDate' | 'dateStr'>
+>;

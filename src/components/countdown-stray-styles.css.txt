@@ -1,0 +1,26 @@
+/* Journey visualization fixes */
+.journey-path { position: relative; width: 100%; height: 100%; }
+.journey-user { position: absolute; width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #8b5cf6); box-shadow: 0 0 12px rgba(59, 130, 246, 0.6); display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%); z-index: 10; }
+.journey-user span { color: white; font-weight: 900; font-size: 18px; }
+.journey-day-chip { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(255, 255, 255, 0.95); padding: 8px 16px; border-radius: 20px; font-weight: 700; font-size: 13px; color: #1e293b; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+
+.coming-soon-overlay { position: absolute; inset: 0; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.coming-soon-content { text-align: center; }
+.coming-soon-icon { width: 80px; height: 80px; margin: 0 auto 20px; background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; }
+.coming-soon-icon svg { width: 40px; height: 40px; }
+.coming-soon-content h2 { font-size: 24px; font-weight: 900; color: #1e293b; margin-bottom: 12px; }
+.coming-soon-content p { font-size: 14px; color: #64748b; line-height: 1.6; margin-bottom: 8px; }
+.coming-soon-content small { display: block; font-size: 12px; color: #cbd5e1; }
+
+.schedule-setup-banner { background: linear-gradient(135deg, #fef08a, #fcd34d); border-radius: 12px; padding: 12px 16px; margin: 16px; }
+.banner-content { display: flex; align-items: center; justify-content: space-between; }
+.banner-content span { font-size: 11px; font-weight: 600; color: #92400e; }
+.banner-content strong { display: block; font-size: 14px; color: #1e293b; margin-bottom: 4px; }
+.banner-content button { display: flex; align-items: center; gap: 4px; background: rgba(255, 255, 255, 0.9); border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; color: #92400e; cursor: pointer; }
+
+.school-setup { display: flex; flex-direction: column; gap: 16px; }
+.school-toggle { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.school-toggle input { width: 20px; height: 20px; cursor: pointer; }
+.school-toggle span { font-weight: 600; color: #1e293b; }
+
+.study-hall-locked { position: relative; }

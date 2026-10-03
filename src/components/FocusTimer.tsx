@@ -339,59 +339,62 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
         </div>
       </div>}
 
-      {/* Giant Circular Timer Dial */}
-      <div className={`focus-dial-wrap ${isActive ? 'is-running' : ''}`}>
-        <div className="focus-orbit-layer" aria-hidden="true"><i className="orbit-ring ring-a" /><i className="orbit-ring ring-b" /><i className="orbit-ring ring-c" /></div>
-        <svg width={dialSize} height={dialSize} className="transform -rotate-90">
-          <defs>
-            <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor={mode === 'work' ? '#4f46e5' : '#059669'} />
-              <stop offset="100%" stopColor={mode === 'work' ? '#9333ea' : '#10b981'} />
-            </linearGradient>
-          </defs>
+      {/* Giant Circular Timer Dial — همه‌ی لایه‌ها در یک خانه‌ی grid روی هم می‌نشینند تا دقیقاً هم‌مرکز باشند */}
+      <div className={`fx-dial ${isActive ? 'is-running' : ''} ${mode === 'break' ? 'is-break' : ''}`}>
+        <div className="fx-float" aria-hidden="true">
+          <i className="fx-bubble b1" />
+          <i className="fx-bubble b2" />
+          <i className="fx-bubble b3" />
+          <i className="fx-bubble b4" />
+          <i className="fx-bubble b5" />
+          <i className="fx-orbit o1" />
+          <i className="fx-orbit o2" />
+        </div>
 
-          {/* Background Ring */}
-          <circle
-            cx={dialSize / 2}
-            cy={dialSize / 2}
-            r={radius}
-            fill="none"
-            stroke="#e2e8f0"
-            strokeWidth={strokeWidth}
-            className="opacity-70"
-          />
+        <div className="fx-body">
+          <svg className="fx-ring" viewBox={`0 0 ${dialSize} ${dialSize}`}>
+            <defs>
+              <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor={mode === 'work' ? '#4f46e5' : '#059669'} />
+                <stop offset="100%" stopColor={mode === 'work' ? '#9333ea' : '#10b981'} />
+              </linearGradient>
+            </defs>
+            <circle
+              cx={dialSize / 2}
+              cy={dialSize / 2}
+              r={radius}
+              fill="none"
+              className="fx-ring-track"
+              strokeWidth={strokeWidth}
+            />
+            <circle
+              cx={dialSize / 2}
+              cy={dialSize / 2}
+              r={radius}
+              fill="none"
+              stroke="url(#timerGradient)"
+              strokeWidth={strokeWidth}
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              strokeLinecap="round"
+              style={{ transition: 'stroke-dashoffset .5s linear' }}
+            />
+          </svg>
 
-          {/* Active Progress Ring */}
-          <circle
-            cx={dialSize / 2}
-            cy={dialSize / 2}
-            r={radius}
-            fill="none"
-            stroke="url(#timerGradient)"
-            strokeWidth={strokeWidth}
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            className="transition-all duration-300 ease-linear"
-          />
-        </svg>
+          <div className="fx-face">
+            <span className="fx-face-label">
+              <Sparkles />
+              {mode === 'work' ? (activeSubject?.name || 'تمرکز عمیق') : 'زمان استراحت'}
+            </span>
 
-        {/* Inner Timer Face (Elevated Soft Disc) */}
-        <div className="absolute inset-[28px] rounded-full bg-gradient-to-b from-white via-slate-50 to-slate-100 soft-dial-shadow flex flex-col items-center justify-center border border-white">
-          <span className="text-xs font-bold text-slate-400 mb-1 flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-amber-500" />
-            {mode === 'work' ? (activeSubject?.name || 'تمرکز عمیق') : 'زمان استراحت'}
-          </span>
+            <div dir="ltr" className="fx-digits">
+              <span>{toPersianDigits(minutes < 10 ? '0' + minutes : minutes)}</span>
+              <span className="fx-colon">:</span>
+              <span>{toPersianDigits(seconds < 10 ? '0' + seconds : seconds)}</span>
+            </div>
 
-          <div dir="ltr" className="text-5xl font-black text-slate-800 tracking-tight flex items-center justify-center font-mono">
-            <span>{toPersianDigits(minutes < 10 ? '۰' + minutes : minutes)}</span>
-            <span className="text-slate-300 mx-0.5 animate-pulse">:</span>
-            <span>{toPersianDigits(seconds < 10 ? '۰' + seconds : seconds)}</span>
+            <span className="fx-face-state">{isActive ? 'در حال ثبت مطالعه...' : 'آماده برای شروع'}</span>
           </div>
-
-          <span className="text-[11px] font-semibold text-slate-400 mt-1">
-            {isActive ? 'در حال ثبت مطالعه...' : 'آماده برای شروع'}
-          </span>
         </div>
       </div>
 

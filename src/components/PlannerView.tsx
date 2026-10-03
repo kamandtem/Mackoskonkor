@@ -26,6 +26,7 @@ import {
   toPersianDigits,
 } from '../utils/jalali';
 import { EmptyState } from './EmptyState';
+import { TimeField } from './TimeField';
 import { TaskPomodoroPanel } from './TaskPomodoroPanel';
 
 interface PlannerViewProps {
@@ -550,13 +551,7 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
                   <label className="text-xs font-bold text-slate-600 mb-1.5 block">
                     ساعت شروع
                   </label>
-                  <input
-                    type="time"
-                    value={newStartTime}
-                    onChange={(e) => setNewStartTime(e.target.value)}
-                    required
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/25"
-                  />
+                  <TimeField value={newStartTime} onChange={setNewStartTime} />
                 </div>
 
                 <div>

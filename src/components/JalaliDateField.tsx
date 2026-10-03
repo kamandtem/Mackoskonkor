@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import { CalendarDays, ChevronDown } from 'lucide-react';
 import {
   PERSIAN_MONTHS,
   formatJalaliKeyWithWeekday,
@@ -7,6 +8,7 @@ import {
   todayJalaliKey,
   toPersianDigits,
 } from '../utils/jalali';
+import { PickerSheet, WheelColumn, WheelOption } from './WheelPicker';
 
 interface JalaliDateFieldProps {
   /** کلید شمسی با رقم لاتین: 1405/08/15 */
@@ -20,9 +22,11 @@ interface JalaliDateFieldProps {
 }
 
 const pad2 = (n: number) => (n < 10 ? '0' + n : '' + n);
+const toKey = (jy: number, jm: number, jd: number) =>
+  `${jy}/${pad2(jm)}/${pad2(Math.min(jd, jalaliMonthLength(jy, jm)))}`;
 
 /**
- * انتخاب تاریخ شمسی با سه لیست سال/ماه/روز.
+ * انتخاب تاریخ شمسی با شیت چرخ‌دار (روز / ماه / سال).
  * از input[type=date] میلادی استفاده نمی‌کنیم چون کاربر ایرانی تاریخ کنکور را
  * شمسی می‌داند و تبدیل ذهنی، منبع اصلی خطای ورودی بود.
  */
@@ -37,77 +41,86 @@ export const JalaliDateField: React.FC<JalaliDateFieldProps> = ({
   const today = parseJalaliKey(todayJalaliKey())!;
   const parsed = parseJalaliKey(value) ?? today;
 
-  const years = useMemo(() => {
-    const list: number[] = [];
-    for (let y = today.jy - yearsBack; y <= today.jy + yearsForward; y++) list.push(y);
-    return list;
-  }, [today.jy, yearsBack, yearsForward]);
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(parsed);
 
-  const daysInMonth = jalaliMonthLength(parsed.jy, parsed.jm);
-  const days = useMemo(
-    () => Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  const years = useMemo<WheelOption<number>[]>(() => {
+    let from = today.jy - yearsBack;
+    let to = today.jy + yearsForward;
+    // اگر مقدار ذخیره‌شده خارج از بازه است، بازه را گسترش بده تا گم نشود
+    from = Math.min(from, parsed.jy, draft.jy);
+    to = Math.max(to, parsed.jy, draft.jy);
+    const list: WheelOption<number>[] = [];
+    for (let y = from; y <= to; y++) list.push({ value: y, label: toPersianDigits(y) });
+    return list;
+  }, [today.jy, yearsBack, yearsForward, parsed.jy, draft.jy]);
+
+  const months = useMemo<WheelOption<number>[]>(
+    () => PERSIAN_MONTHS.map((m, i) => ({ value: i + 1, label: m })),
+    [],
+  );
+
+  const daysInMonth = jalaliMonthLength(draft.jy, draft.jm);
+  const days = useMemo<WheelOption<number>[]>(
+    () => Array.from({ length: daysInMonth }, (_, i) => ({ value: i + 1, label: toPersianDigits(i + 1) })),
     [daysInMonth],
   );
 
-  const emit = (jy: number, jm: number, jd: number) => {
-    // اگر روز انتخاب‌شده در ماه جدید وجود ندارد، به آخرین روز ماه بچسبان
-    const safeDay = Math.min(jd, jalaliMonthLength(jy, jm));
-    onChange(`${jy}/${pad2(jm)}/${pad2(safeDay)}`);
+  const setPart = (part: Partial<typeof draft>) => {
+    setDraft((d) => {
+      const next = { ...d, ...part };
+      next.jd = Math.min(next.jd, jalaliMonthLength(next.jy, next.jm));
+      return next;
+    });
   };
 
-  const selectClass =
-    'flex-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/25 appearance-none text-center';
+  const openSheet = () => {
+    setDraft(parseJalaliKey(value) ?? today);
+    setOpen(true);
+  };
+
+  const draftKey = toKey(draft.jy, draft.jm, draft.jd);
+  const currentKey = toKey(parsed.jy, parsed.jm, parsed.jd);
 
   return (
     <div>
-      {label && (
-        <label className="text-xs font-bold text-slate-600 mb-1.5 block">{label}</label>
-      )}
+      {label && <span className="text-xs font-bold text-slate-600 mb-1.5 block">{label}</span>}
 
-      <div className="flex items-center gap-2" dir="rtl">
-        <select
-          aria-label="سال"
-          value={parsed.jy}
-          onChange={(e) => emit(Number(e.target.value), parsed.jm, parsed.jd)}
-          className={selectClass}
-        >
-          {years.map((y) => (
-            <option key={y} value={y}>
-              {toPersianDigits(y)}
-            </option>
-          ))}
-        </select>
+      <button type="button" className="picker-trigger" onClick={openSheet} dir="rtl">
+        <span className="picker-trigger-icon">
+          <CalendarDays />
+        </span>
+        <span className="picker-trigger-text">
+          <b>
+            {toPersianDigits(parsed.jd)} {PERSIAN_MONTHS[parsed.jm - 1]} {toPersianDigits(parsed.jy)}
+          </b>
+          <small>{hint ?? formatJalaliKeyWithWeekday(currentKey).split(' ')[0]}</small>
+        </span>
+        <ChevronDown className="picker-trigger-caret" />
+      </button>
 
-        <select
-          aria-label="ماه"
-          value={parsed.jm}
-          onChange={(e) => emit(parsed.jy, Number(e.target.value), parsed.jd)}
-          className={`${selectClass} flex-[1.4]`}
-        >
-          {PERSIAN_MONTHS.map((m, i) => (
-            <option key={m} value={i + 1}>
-              {m}
-            </option>
-          ))}
-        </select>
-
-        <select
-          aria-label="روز"
-          value={parsed.jd}
-          onChange={(e) => emit(parsed.jy, parsed.jm, Number(e.target.value))}
-          className={selectClass}
-        >
-          {days.map((d) => (
-            <option key={d} value={d}>
-              {toPersianDigits(d)}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <p className="text-[11px] text-slate-400 font-medium mt-1.5">
-        {hint ?? formatJalaliKeyWithWeekday(`${parsed.jy}/${pad2(parsed.jm)}/${pad2(parsed.jd)}`)}
-      </p>
+      <PickerSheet
+        open={open}
+        title={label ?? 'انتخاب تاریخ'}
+        preview={formatJalaliKeyWithWeekday(draftKey) + ' ' + toPersianDigits(draft.jy)}
+        onClose={() => setOpen(false)}
+        onConfirm={() => {
+          onChange(draftKey);
+          setOpen(false);
+        }}
+        shortcut={{ label: 'امروز', onClick: () => setDraft(today) }}
+      >
+        <WheelColumn ariaLabel="روز" options={days} value={draft.jd} onChange={(jd) => setPart({ jd })} />
+        <WheelColumn
+          ariaLabel="ماه"
+          options={months}
+          value={draft.jm}
+          onChange={(jm) => setPart({ jm })}
+          primary
+          grow={1.7}
+        />
+        <WheelColumn ariaLabel="سال" options={years} value={draft.jy} onChange={(jy) => setPart({ jy })} grow={1.2} />
+      </PickerSheet>
     </div>
   );
 };

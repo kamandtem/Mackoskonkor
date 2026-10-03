@@ -1,0 +1,9 @@
+const JourneyPath:React.FC<{progress:number;daysRemaining:number}>=({progress,daysRemaining})=>{
+ const clamped=Math.max(0,Math.min(100,progress));
+ const x=10+(clamped*0.75);
+ const y=82-(clamped*0.75);
+ return <div className="journey-path journey-vector-overlay" aria-label={`${toPersianDigits(Math.round(clamped))} درصد مسیر طی شده`}>
+   <span className="journey-user" style={{left:`${x}%`,top:`${y}%`}}><span>تو</span></span>
+   <div className="journey-day-chip">{daysRemaining>0?`${toPersianDigits(daysRemaining)} روز تا قله`:'امروز روز قله است'}</div>
+ </div>;
+};

@@ -245,6 +245,11 @@ function sanitizeNotes(raw: unknown): NoteItem[] {
 function sanitizeSessions(raw: unknown): StudySession[] {
   if (!Array.isArray(raw)) return [];
   const allowed = ['pomodoro', 'timer', 'manual', 'drill', 'virtual', 'physical'];
+  const kinds = ['study', 'class', 'other'];
+  const validTime = (v: unknown): string | undefined => {
+    const t = str(v).trim();
+    return /^\d{1,2}:\d{2}$/.test(t) ? normalizeTime(t) : undefined;
+  };
   return raw.filter(isObj).map((s, i) => {
     const iso = sanitizeIso(s.isoDate) || toLocalIso();
     return {
@@ -256,6 +261,13 @@ function sanitizeSessions(raw: unknown): StudySession[] {
       dateStr: normalizeJalaliKey(str(s.dateStr)) ?? todayJalaliKey(),
       timestamp: num(s.timestamp, Date.now(), 0, Number.MAX_SAFE_INTEGER),
       type: (allowed.includes(str(s.type)) ? str(s.type) : 'manual') as StudySession['type'],
+      activityType: kinds.includes(str(s.activityType))
+        ? (str(s.activityType) as StudySession['activityType'])
+        : undefined,
+      startTime: validTime(s.startTime),
+      endTime: validTime(s.endTime),
+      questionCount: s.questionCount != null ? num(s.questionCount, 0, 0, 2000) || undefined : undefined,
+      taskId: str(s.taskId) || undefined,
     };
   });
 }

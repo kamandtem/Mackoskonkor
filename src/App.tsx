@@ -4,6 +4,7 @@ import {
   AppBackup,
   MockExam,
   NavTab,
+  SessionExtra,
   StudySession,
   SubjectItem,
   TaskItem,
@@ -36,6 +37,10 @@ import {
 import {
   calculateDaysRemaining,
   calculateProgressPercentage,
+  currentTimeMinutes,
+  jalaliKeyToIso,
+  minutesToTime,
+  timeToMinutes,
   toLocalIso,
   todayJalaliKey,
 } from './utils/jalali';
@@ -299,18 +304,34 @@ export default function App() {
       subjectName: string,
       durationMinutes: number,
       type: StudySession['type'],
+      extra: SessionExtra = {},
     ) => {
       if (durationMinutes <= 0) return;
+      // زمان واقعی جلسه: اگر مشخص نشده، جلسه همین الان تمام شده است
+      const endMin = extra.endTime ? timeToMinutes(extra.endTime) : currentTimeMinutes();
+      const startMin = extra.startTime
+        ? timeToMinutes(extra.startTime)
+        : Math.max(0, endMin - durationMinutes);
+      const finalEnd = extra.endTime
+        ? endMin
+        : extra.startTime
+          ? Math.min(24 * 60 - 1, startMin + durationMinutes)
+          : endMin;
       setSessions((prev) => [
         {
           id: uid('sess'),
           subjectId,
           subjectName,
           durationMinutes,
-          dateStr: todayJalaliKey(),
-          isoDate: toLocalIso(),
+          dateStr: extra.dateStr ?? todayJalaliKey(),
+          isoDate: extra.isoDate ?? toLocalIso(),
           timestamp: Date.now(),
           type,
+          activityType: extra.activityType ?? 'study',
+          startTime: minutesToTime(startMin),
+          endTime: minutesToTime(finalEnd),
+          questionCount: extra.questionCount && extra.questionCount > 0 ? extra.questionCount : undefined,
+          taskId: extra.taskId,
         },
         ...prev,
       ]);
@@ -330,7 +351,22 @@ export default function App() {
       if (!task.isCompleted) {
         const remaining = Math.max(0, task.durationMinutes - (task.loggedMinutes ?? 0));
         if (remaining > 0) {
-          recordSession(task.subjectId, task.subjectName, remaining, 'manual');
+          // تیک‌زدن یعنی همان بازه‌ی برنامه‌ریزی‌شده انجام شده؛ اگر تاریخ ردیف
+          // گذشته یا امروز باشد، جلسه روی همان روز ثبت می‌شود
+          const taskIso = jalaliKeyToIso(task.dateStr);
+          const usePlanDay = !!taskIso && taskIso <= toLocalIso();
+          const planStart = timeToMinutes(task.startTime) + (task.loggedMinutes ?? 0);
+          recordSession(task.subjectId, task.subjectName, remaining, 'manual', {
+            activityType: task.activityType ?? 'study',
+            taskId: task.id,
+            ...(usePlanDay
+              ? {
+                  isoDate: taskIso!,
+                  dateStr: task.dateStr,
+                  startTime: minutesToTime(Math.min(planStart, 24 * 60 - 1)),
+                }
+              : {}),
+          });
         }
         celebrateAchievement();
         setTasks((prev) =>
@@ -361,7 +397,10 @@ export default function App() {
       const task = tasks.find((t) => t.id === taskId);
       if (!task) return;
 
-      recordSession(task.subjectId, task.subjectName, minutes, type);
+      recordSession(task.subjectId, task.subjectName, minutes, type, {
+        activityType: task.activityType ?? 'study',
+        taskId: task.id,
+      });
       const reachesGoal = !task.isCompleted && (task.loggedMinutes ?? 0) + minutes >= task.durationMinutes;
       if (reachesGoal) celebrateAchievement();
       setTasks((prev) =>
@@ -548,6 +587,7 @@ export default function App() {
 
             <HomeTimeline
               tasks={todayTasks}
+              subjects={subjects}
               onToggleTask={handleToggleTask}
               onAddTask={() => goToTab('planner')}
               onViewAllPlanner={() => goToTab('planner')}
@@ -599,7 +639,9 @@ export default function App() {
           <div className="animate-in fade-in duration-200">
             <StudyScheduleView
               subjects={subjects}
+              profile={profile}
               onAddTasks={handleAddTasks}
+              onUpdateProfile={handleSaveProfile}
               onOpenCalendar={() => goToTab('planner')}
               onClose={() => goToTab('home')}
             />
@@ -639,6 +681,8 @@ export default function App() {
               drillStats={drillStats}
               drills={drills}
               sessions={sessions}
+              tasks={tasks}
+              subjects={subjects}
               profile={profile}
               onStartFocus={() => goToTab('focus')}
             />
@@ -743,7 +787,7 @@ export default function App() {
         isOpen={isManualLogOpen}
         onClose={() => setIsManualLogOpen(false)}
         subjects={subjects}
-        onLogStudy={(id, name, minutes) => recordSession(id, name, minutes, 'manual')}
+        onLogStudy={(id, name, minutes, extra) => recordSession(id, name, minutes, 'manual', extra)}
       />
 
       <BackupModal

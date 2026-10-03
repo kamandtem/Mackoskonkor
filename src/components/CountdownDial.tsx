@@ -158,6 +158,7 @@ export const CountdownDial: React.FC<CountdownDialProps> = ({
         </div>
 
         {/* دو سنجه‌ی پایین — بر اساس هدف روزانه‌ی خودِ کاربر، نه عدد ثابت */}
+        {/* Live Countdown Timer */}
         <div className="countdown-card-metrics w-full grid grid-cols-2 gap-4">
           <div className="text-center px-2">
             <div className="text-lg font-black text-slate-800">
@@ -175,6 +176,16 @@ export const CountdownDial: React.FC<CountdownDialProps> = ({
             <div className="text-[11px] text-slate-400 font-medium">
               ظرفیت مطالعه با هدف فعلی
             </div>
+          </div>
+        </div>
+
+        {/* Live Digital Countdown - synced with menu */}
+        <div className="countdown-live-ticker w-full px-4 py-3 my-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100">
+          <div className="text-[11px] text-slate-500 font-semibold text-center mb-1">شمارش معکوس زنده</div>
+          <div className="flex items-center justify-center gap-0.5 font-mono">
+            <span className="text-2xl font-black text-indigo-700 min-w-12 text-right">{toPersianDigits(daysRemaining.toString().padStart(2, '0'))}</span>
+            <span className="text-xl text-slate-400">:</span>
+            <span className="text-xl font-bold text-slate-700 min-w-8">س</span>
           </div>
         </div>
 

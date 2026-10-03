@@ -363,3 +363,4 @@ export const CountdownRenderer: React.FC<CountdownStylesProps> = ({
       return <GradientRingCountdown days={remaining.days} progress={progressPercent} />;
   }
 };
+

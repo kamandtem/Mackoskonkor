@@ -455,3 +455,151 @@ main label>span,.fixed label>span{font-weight:850;color:oklch(42% .025 285)}
 .journey-vector-overlay{inset:118px 18px 58px!important;background:transparent!important;pointer-events:none}
 .journey-vector-overlay .journey-user{pointer-events:none}
 .journey-vector-overlay .journey-day-chip{top:-38px!important}
+
+/* ================================================================== */
+/* v2.7 — چرخ انتخاب تاریخ/ساعت                                         */
+/* ================================================================== */
+.picker-trigger{width:100%;min-height:54px;display:flex;align-items:center;gap:10px;padding:7px 10px 7px 12px;border-radius:18px;background:linear-gradient(135deg,#f8faff,#f1f4ff);border:1px solid #dfe5fb;color:#1e293b;text-align:right;transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s,border-color .2s}
+.picker-trigger:active{transform:scale(.98)}
+.picker-trigger:focus-visible{outline:none;border-color:#818cf8;box-shadow:0 0 0 4px rgba(99,102,241,.14)}
+.picker-trigger-icon{width:38px;height:38px;flex-shrink:0;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;box-shadow:0 6px 14px rgba(99,102,241,.25)}
+.picker-trigger.is-time .picker-trigger-icon{background:linear-gradient(135deg,#0ea5e9,#6366f1);box-shadow:0 6px 14px rgba(14,165,233,.22)}
+.picker-trigger-icon svg{width:18px;height:18px}
+.picker-trigger-text{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.35}
+.picker-trigger-text b{font-size:.86rem;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+.picker-trigger-text small{font-size:.68rem;font-weight:700;color:#64748b}
+.picker-trigger-caret{width:16px;height:16px;color:#94a3b8;flex-shrink:0}
+
+.picker-shell{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:flex-end;justify-content:center;background:rgba(15,23,42,.38);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);animation:picker-fade .22s ease both}
+.picker-shell.is-closing{animation:picker-fade-out .19s ease both}
+.picker-sheet{width:100%;max-width:480px;padding:8px 18px calc(18px + env(safe-area-inset-bottom));border-radius:30px 30px 0 0;background:#fff;box-shadow:0 -20px 50px rgba(15,23,42,.18);animation:picker-up .36s cubic-bezier(.16,1,.3,1) both}
+.picker-shell.is-closing .picker-sheet{animation:picker-down .19s ease-in both}
+.picker-grip{display:block;width:42px;height:5px;margin:0 auto 10px;border-radius:9px;background:#e2e8f0}
+.picker-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px}
+.picker-head>div{display:flex;flex-direction:column;gap:3px}
+.picker-title{font-size:.75rem;font-weight:800;color:#64748b}
+.picker-preview{font-size:1.02rem;font-weight:950;color:#1e1b4b}
+.picker-close{width:38px;height:38px;border-radius:14px;display:grid;place-items:center;background:#f1f5f9;color:#64748b}
+.picker-close svg{width:18px}
+.picker-wheels{display:flex;align-items:stretch;gap:14px;padding:6px 4px;position:relative}
+.wheel-colon{align-self:center;font-size:1.6rem;font-weight:900;color:#c7d2fe;margin:0 -6px}
+.wheel-col{position:relative;flex:1 1 0;min-width:0}
+.wheel-band{position:absolute;left:0;right:0;top:50%;height:46px;translate:0 -50%;pointer-events:none;z-index:2}
+.wheel-band:before,.wheel-band:after{content:"";position:absolute;left:0;right:0;height:5px;border-radius:9px;background:#dbe6fb}
+.wheel-band:before{top:-3px}.wheel-band:after{bottom:-3px}
+.wheel-col.is-primary .wheel-band:before,.wheel-col.is-primary .wheel-band:after{background:linear-gradient(90deg,#6366f1,#3b82f6);box-shadow:0 3px 10px rgba(59,130,246,.25)}
+.wheel-unit{position:absolute;inset-inline-end:2px;top:50%;translate:0 -50%;font-size:.62rem;font-weight:800;color:#94a3b8}
+.wheel-scroll{overflow-y:auto;overscroll-behavior:contain;scroll-snap-type:y mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;outline:none;-webkit-mask-image:linear-gradient(180deg,transparent,#000 30%,#000 70%,transparent);mask-image:linear-gradient(180deg,transparent,#000 30%,#000 70%,transparent);box-sizing:border-box}
+.wheel-scroll::-webkit-scrollbar{display:none}
+.wheel-item{width:100%;display:flex;align-items:center;justify-content:center;scroll-snap-align:center;font-size:1rem;font-weight:600;color:#94a3b8;white-space:nowrap;transition:color .15s;will-change:transform,opacity}
+.wheel-item.is-live{font-size:1.32rem;font-weight:950;color:#1e1b4b}
+.picker-actions{display:flex;gap:10px;margin-top:12px}
+.picker-primary{flex:1;min-height:52px;border-radius:18px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;font-size:.85rem;font-weight:900;box-shadow:0 12px 24px rgba(79,70,229,.25);transition:transform .2s}
+.picker-secondary{min-height:52px;padding:0 20px;border-radius:18px;background:#eef2ff;color:#4f46e5;font-size:.8rem;font-weight:900;transition:transform .2s}
+.picker-primary:active,.picker-secondary:active{transform:scale(.97)}
+@keyframes picker-fade{from{opacity:0}to{opacity:1}}
+@keyframes picker-fade-out{to{opacity:0}}
+@keyframes picker-up{from{transform:translateY(100%)}to{transform:none}}
+@keyframes picker-down{to{transform:translateY(100%)}}
+.dark .picker-trigger{background:#172033;border-color:rgba(148,163,184,.18);color:#e2e8f0}
+.dark .picker-trigger-text small{color:#94a3b8}
+.dark .picker-sheet{background:#111a2b}
+.dark .picker-grip,.dark .picker-close{background:#1e293b}
+.dark .picker-preview,.dark .wheel-item.is-live{color:#f1f5f9}
+.dark .wheel-band:before,.dark .wheel-band:after{background:#24324d}
+.dark .picker-secondary{background:#1e2746;color:#a5b4fc}
+/* برچسب‌هایی که قبلاً input ساعت داشتند */
+label>.picker-trigger{margin-top:6px}
+
+/* ================================================================== */
+/* v2.7 — خط زمان برنامه امروز                                          */
+/* ================================================================== */
+.htl{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:14px;padding:6px 0 4px}
+.htl-rail{position:absolute;top:0;bottom:22px;left:50%;width:4px;translate:-50% 0;border-radius:9px;background:linear-gradient(180deg,#fcd34d,#fb923c 30%,#f472b6 62%,#8b5cf6);opacity:.35}
+.htl-flag{position:relative;z-index:1;align-self:center;display:flex;align-items:center;gap:5px;padding:5px 13px;border-radius:10px;background:var(--flag);color:#fff;font-size:.72rem;font-weight:900;box-shadow:0 6px 14px -4px var(--flag)}
+.htl-flag span{font-size:.8rem}
+.htl-row{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr);align-items:center;column-gap:8px;animation:htl-in .5s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--i) * 60ms)}
+.htl-row.is-start .htl-card{grid-column:1;grid-row:1}
+.htl-row.is-start .htl-time{grid-column:3;grid-row:1;text-align:right}
+.htl-row.is-end .htl-card{grid-column:3;grid-row:1}
+.htl-row.is-end .htl-time{grid-column:1;grid-row:1;text-align:left}
+.htl-node{grid-column:2;grid-row:1;justify-self:center;position:relative;z-index:1;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:#fff;border:4px solid var(--c);box-shadow:0 0 0 4px var(--c-soft);transition:transform .2s cubic-bezier(.16,1,.3,1),background .2s}
+.htl-node:before{content:"";position:absolute;inset:-12px;border-radius:50%}
+.htl-node:active{transform:scale(.85)}
+.htl-node svg{width:13px;height:13px;color:#fff;stroke-width:3.5}
+.htl-row.is-done .htl-node{background:var(--c)}
+.htl-row.is-current .htl-node{animation:htl-pulse 2.2s ease-out infinite}
+.htl-card{position:relative;width:100%;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:10px 12px;border-radius:18px;text-align:right;border:1px solid var(--c-mid);box-shadow:0 8px 18px -10px var(--c);transition:transform .2s cubic-bezier(.16,1,.3,1)}
+.htl-card:active{transform:scale(.97)}
+.htl-card,.htl-card:after{background-color:#fff;background-image:linear-gradient(var(--c-soft),var(--c-soft))}
+.htl-card:after{content:"";position:absolute;top:50%;width:11px;height:11px;margin-top:-6px;rotate:45deg;border:1px solid var(--c-mid)}
+.htl-row.is-start .htl-card:after{left:-6.5px;border-top:0;border-right:0}
+.htl-row.is-end .htl-card:after{right:-6.5px;border-left:0;border-bottom:0}
+.htl-row.is-start .htl-card{border-right:4px solid var(--c)}
+.htl-row.is-end .htl-card{border-left:4px solid var(--c)}
+.htl-card-title{display:flex;align-items:center;justify-content:space-between;gap:4px;min-width:0}
+.htl-card-title b{font-size:.84rem;font-weight:900;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.htl-card-title svg{width:15px;height:15px;color:var(--c);flex-shrink:0}
+.htl-card-sub{font-size:.68rem;font-weight:700;color:var(--c);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;filter:saturate(1.1) brightness(.85)}
+.htl-now{position:absolute;top:-9px;inset-inline-start:10px;padding:1px 8px;border-radius:7px;background:var(--c);color:#fff;font-size:.6rem;font-weight:900}
+.htl-time{display:flex;flex-direction:column;gap:1px;padding:0 4px}
+.htl-time b{font-size:.84rem;font-weight:900;color:var(--c);filter:brightness(.85)}
+.htl-time small{font-size:.64rem;font-weight:700;color:#94a3b8}
+.htl-row.is-end .htl-time b,.htl-row.is-end .htl-time small{text-align:left}
+.htl-row.is-start .htl-time b,.htl-row.is-start .htl-time small{text-align:right}
+.htl-row.is-done .htl-card{opacity:.55;box-shadow:none}
+.htl-row.is-done .htl-card-title b{text-decoration:line-through;color:#94a3b8}
+.htl-hint{align-self:center;margin-top:2px;font-size:.62rem;font-weight:700;color:#94a3b8}
+@keyframes htl-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes htl-pulse{0%{box-shadow:0 0 0 0 var(--c-mid)}70%{box-shadow:0 0 0 12px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.dark .htl-card,.dark .htl-card:after{background-color:#172033}
+.dark .htl-card-title b{color:#e2e8f0}
+.dark .htl-node{background:#111a2b}
+
+/* ================================================================== */
+/* v2.7 — صفحه‌ی دایره‌ی تمرکز: هم‌مرکز + حباب‌های معلق                  */
+/* ================================================================== */
+.fx-dial{--size:min(286px,78vw);position:relative;width:var(--size);height:var(--size);margin:6px auto 0;display:grid;place-items:center;isolation:isolate}
+.fx-dial>*{grid-area:1/1}
+.fx-float{position:relative;width:100%;height:100%;pointer-events:none;z-index:0}
+.fx-bubble,.fx-orbit{position:absolute;left:50%;top:50%;border-radius:50%;display:block;animation-play-state:paused;transition:opacity 1.2s ease}
+.fx-bubble{filter:blur(.5px)}
+.fx-bubble.b1{width:118%;height:118%;margin:-59% 0 0 -59%;background:radial-gradient(circle,rgba(129,140,248,.16),rgba(129,140,248,0) 68%);animation:fx-drift-a 38s ease-in-out infinite}
+.fx-bubble.b2{width:34px;height:34px;margin:-17px 0 0 -17px;background:radial-gradient(circle at 35% 30%,#fff,rgba(139,92,246,.85));box-shadow:0 8px 20px rgba(139,92,246,.35);animation:fx-drift-b 46s ease-in-out infinite}
+.fx-bubble.b3{width:20px;height:20px;margin:-10px 0 0 -10px;background:radial-gradient(circle at 35% 30%,#fff,rgba(249,115,22,.85));box-shadow:0 6px 14px rgba(249,115,22,.3);animation:fx-drift-c 52s ease-in-out infinite}
+.fx-bubble.b4{width:14px;height:14px;margin:-7px 0 0 -7px;background:radial-gradient(circle at 35% 30%,#fff,rgba(16,185,129,.85));box-shadow:0 5px 12px rgba(16,185,129,.3);animation:fx-drift-d 41s ease-in-out infinite}
+.fx-bubble.b5{width:26px;height:26px;margin:-13px 0 0 -13px;background:radial-gradient(circle at 35% 30%,#fff,rgba(14,165,233,.8));box-shadow:0 6px 14px rgba(14,165,233,.3);animation:fx-drift-e 57s ease-in-out infinite}
+.fx-orbit{border:1px solid rgba(99,102,241,.16)}
+.fx-orbit.o1{width:108%;height:108%;margin:-54% 0 0 -54%;animation:fx-wobble-a 44s ease-in-out infinite}
+.fx-orbit.o2{width:122%;height:122%;margin:-61% 0 0 -61%;border-style:dashed;border-color:rgba(139,92,246,.14);animation:fx-wobble-b 60s ease-in-out infinite}
+.fx-dial:not(.is-running) .fx-bubble.b2,.fx-dial:not(.is-running) .fx-bubble.b3,.fx-dial:not(.is-running) .fx-bubble.b4,.fx-dial:not(.is-running) .fx-bubble.b5{opacity:.0}
+.fx-dial .fx-bubble,.fx-dial .fx-orbit,.fx-dial .fx-body{animation-play-state:paused}
+.fx-dial.is-running .fx-bubble,.fx-dial.is-running .fx-orbit,.fx-dial.is-running .fx-body{animation-play-state:running}
+.fx-body{position:relative;z-index:1;width:100%;height:100%;display:grid;place-items:center;animation:fx-hover 9s ease-in-out infinite;animation-play-state:paused}
+.fx-body>*{grid-area:1/1}
+.fx-body:before{content:"";grid-area:1/1;width:88%;height:88%;border-radius:50%;background:radial-gradient(circle at 50% 38%,#fff,#eef0fb);box-shadow:0 22px 48px rgba(79,70,229,.14),inset 0 1px 0 #fff}
+.fx-ring{width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+.fx-ring-track{stroke:#e2e8f0;opacity:.75}
+.fx-face{width:72%;height:72%;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:linear-gradient(180deg,#fff,#f6f7fb);border:1px solid #eef0f6;box-shadow:0 12px 28px rgba(30,27,75,.10),inset 0 1px 0 #fff;text-align:center}
+.fx-face-label{display:flex;align-items:center;justify-content:center;gap:4px;max-width:80%;font-size:.72rem;font-weight:800;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fx-face-label svg{width:13px;height:13px;color:#f59e0b;flex-shrink:0}
+.fx-digits{display:flex;align-items:center;justify-content:center;font-size:clamp(2.4rem,12vw,3rem);line-height:1.1;font-weight:950;color:#1e293b;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.fx-colon{margin:0 2px;color:#cbd5e1;animation:fx-blink 1s steps(1) infinite}
+.fx-face-state{font-size:.68rem;font-weight:700;color:#94a3b8}
+.fx-dial.is-break .fx-bubble.b1{background:radial-gradient(circle,rgba(16,185,129,.16),rgba(16,185,129,0) 68%)}
+.fx-dial.is-break .fx-orbit{border-color:rgba(16,185,129,.18)}
+@keyframes fx-hover{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes fx-drift-a{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(6px,-8px) scale(1.03)}66%{transform:translate(-7px,5px) scale(.98)}}
+@keyframes fx-drift-b{0%,100%{transform:translate(-128px,-104px)}25%{transform:translate(-112px,-122px)}50%{transform:translate(-138px,-92px)}75%{transform:translate(-120px,-84px)}}
+@keyframes fx-drift-c{0%,100%{transform:translate(126px,-70px)}30%{transform:translate(138px,-88px)}60%{transform:translate(114px,-58px)}}
+@keyframes fx-drift-d{0%,100%{transform:translate(118px,108px)}40%{transform:translate(102px,124px)}70%{transform:translate(130px,98px)}}
+@keyframes fx-drift-e{0%,100%{transform:translate(-120px,96px)}35%{transform:translate(-136px,80px)}70%{transform:translate(-108px,112px)}}
+@keyframes fx-wobble-a{0%,100%{transform:translate(0,0) rotate(0)}50%{transform:translate(4px,-5px) rotate(8deg)}}
+@keyframes fx-wobble-b{0%,100%{transform:translate(0,0) rotate(0)}50%{transform:translate(-5px,4px) rotate(-10deg)}}
+@keyframes fx-blink{50%{opacity:.25}}
+.fx-dial:not(.is-running) .fx-colon{animation:none}
+@media(prefers-reduced-motion:reduce){.fx-bubble,.fx-orbit,.fx-body,.fx-colon{animation:none!important}}
+.dark .fx-body:before{background:radial-gradient(circle at 50% 38%,#1b2540,#111a2b);box-shadow:0 22px 48px rgba(0,0,0,.35)}
+.dark .fx-face{background:#172033;border-color:rgba(148,163,184,.18)}
+.dark .fx-digits{color:#f1f5f9}
+.dark .fx-ring-track{stroke:#24324d}
